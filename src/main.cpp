@@ -2,12 +2,15 @@
 // Created by andrii on 04.04.21.
 //
 
+#include "./cmd_line_parser.hpp"
 #include "./segment_detector.hpp"
+#include "./terminal_input.hpp"
 
+#include <avr/io.h>
+#include <zoal/arch/avr/stream.hpp>
 #include <zoal/arch/avr/utils/usart_transmitter.hpp>
 #include <zoal/board/arduino_uno.hpp>
 #include <zoal/io/stepper_28byj.hpp>
-#include <zoal/shield/uno_multi_functional.hpp>
 #include <zoal/utils/ms_counter.hpp>
 #include <zoal/utils/tool_set.hpp>
 
@@ -30,13 +33,10 @@ using tools = zoal::utils::tool_set<mcu, F_CPU, counter, void>;
 using delay = tools::delay;
 using overflow_to_tick = zoal::utils::timer_overflow_to_tick<F_CPU, 32, 256>;
 using scheduler_type = zoal::utils::function_scheduler<counter, 8, void *>;
-using shield_type = zoal::shield::uno_multi_functional<pcb, uint32_t>;
 
-shield_type shield;
 scheduler_type hardware_scheduler;
 scheduler_type general_scheduler;
 
-//using stepper_type = zoal::io::stepper_28byj<pcb::ard_d08, pcb::ard_d09, pcb::ard_d10, pcb::ard_d11, 8>;
 using stepper_type = zoal::io::stepper_28byj<pcb::ard_d10, pcb::ard_d11, pcb::ard_d12, pcb::ard_d13, 8>;
 stepper_type stepper;
 
@@ -48,6 +48,23 @@ tx_stream_type stream(transport);
 zoal::data::ring_buffer<uint8_t, 16> rx_buffer;
 
 segment_detector detector;
+
+constexpr size_t terminal_str_size = 64;
+using command_line_parser = zoal::misc::command_line_parser;
+char terminal_buffer[terminal_str_size];
+zoal::misc::terminal_input terminal(terminal_buffer, sizeof(terminal_buffer));
+auto terminal_greeting = "\033[0;32mmcu\033[m$ ";
+
+const char help_cmd[] PROGMEM = "help";
+const char calibrate_cmd[] PROGMEM = "calibrate";
+const char next_cmd[] PROGMEM = "next";
+const char go_cmd[] PROGMEM = "go";
+const char adc_cmd[] PROGMEM = "adc";
+const char pump_cmd[] PROGMEM = "pump";
+
+using hall_sensor = pcb::ard_a05;
+using ir_sensor = pcb::ard_a04;
+using pump_signal = pcb::ard_d02;
 
 void initialize_hardware() {
     using namespace zoal::gpio;
@@ -71,7 +88,6 @@ void initialize_hardware() {
         //
         mcu::irq::timer<timer>::enable_overflow_interrupt,
         //
-        shield_type::gpio_cfg,
         stepper_type::gpio_cfg
         //
         >();
@@ -86,24 +102,25 @@ void initialize_hardware() {
     adc::enable_interrupt();
 }
 
-uint16_t min_adc = 0xFFFF;
-uint16_t max_adc = 0;
+uint32_t portion_delay = 850;
+int total_segments = 6;
+int drinks_left = 0;
 
-int total_segments = 0;
+void stop_machine(void *v = nullptr) {
+    drinks_left = 0;
+    stepper.stop();
+    hardware_scheduler.clear();
+    pump_signal::low();
+}
 
 void perform_calibration(void *) {
-    mcu::mux::adc<adc, pcb::ard_a05>::connect();
+    mcu::mux::adc<adc, hall_sensor>::connect();
     int value = adc::read();
     bool result = detector.handle(value);
     auto state = detector.state;
     if (result && state == function_state::sector_a) {
         stream << "Segment: " << total_segments << "\r\n";
         total_segments++;
-        shield.dec_to_segments(total_segments);
-
-        shield_type::beeper::on();
-        delay::ms(5);
-        shield_type::beeper::off();
     }
 
     stepper.step_now();
@@ -112,10 +129,8 @@ void perform_calibration(void *) {
     } else {
         stepper.stop();
 
-        shield.dec_to_segments(total_segments);
         stream << "Total segments: " << total_segments << "\r\n";
-        stream << "min_adc: " << min_adc << "\r\n";
-        stream << "max_adc: " << max_adc << "\r\n";
+        terminal.sync();
     }
 }
 
@@ -137,7 +152,7 @@ void calibrate_rotate_30_degrees(void *) {
 void calibrate_to_segment_a(void *) {
     stepper.step_now();
 
-    mcu::mux::adc<adc, pcb::ard_a05>::connect();
+    mcu::mux::adc<adc, hall_sensor>::connect();
     int value = adc::read();
     bool result = detector.handle(value);
     auto state = detector.state;
@@ -152,109 +167,194 @@ void calibrate_to_segment_a(void *) {
     if (stepper.steps_left > 0) {
         hardware_scheduler.schedule(step_delay_ms, calibrate_to_segment_a);
     } else {
+        stop_machine();
         stream << "Revolver error!!!\r\n";
+        terminal.sync();
     }
 }
 
 void calibrate() {
     total_segments = 0;
-    shield.dec_to_segments(total_segments);
 
     hardware_scheduler.clear();
     stepper.rotate(steps_per_revolution, rotation_direction);
     calibrate_to_segment_a(nullptr);
 }
 
+void go_to_next_segment();
+
+void make_next_if_needed(void *) {
+    stream << "drinks_left: " << drinks_left << "\r\n";
+
+    if (drinks_left > 0) {
+        go_to_next_segment();
+    } else {
+        drinks_left = 0;
+        stop_machine();
+    }
+}
+
+void make_drink(void *) {
+    mcu::mux::adc<adc, ir_sensor>::connect();
+    int value = adc::read();
+    drinks_left--;
+    if (value < 700 && drinks_left >= 0) {
+        stream << "make_drink\r\n";
+
+        pump_signal::mode<zoal::gpio::pin_mode::output>();
+        pump_signal::high();
+        delay::ms(portion_delay);
+        pump_signal::low();
+        hardware_scheduler.schedule(200, make_next_if_needed);
+    } else {
+        hardware_scheduler.schedule(0, make_next_if_needed);
+    }
+}
+
 void go_to_segment_a(void *) {
+    pump_signal::low();
     stepper.step_now();
 
-    mcu::mux::adc<adc, pcb::ard_a05>::connect();
+    mcu::mux::adc<adc, hall_sensor>::connect();
     int value = adc::read();
     bool result = detector.handle(value);
     auto state = detector.state;
     if (result && state == function_state::sector_a) {
         stepper.stop();
-        shield_type::beeper::on();
-        delay::ms(5);
-        shield_type::beeper::off();
+        terminal.sync();
+
+        hardware_scheduler.schedule(0, make_drink);
         return;
     }
 
     if (stepper.steps_left > 0) {
         hardware_scheduler.schedule(step_delay_ms, go_to_segment_a);
     } else {
+        stop_machine();
+        stepper.stop();
         stream << "Revolver error!!!\r\n";
+        terminal.sync();
     }
 }
 
 void go_to_rotate_30_deg(void *) {
+    pump_signal::low();
     stepper.step_now();
     if (stepper.steps_left > 0) {
         hardware_scheduler.schedule(step_delay_ms, go_to_rotate_30_deg);
     } else {
-        stepper.rotate(steps_per_revolution, rotation_direction);
+        stepper.rotate(steps_per_revolution / total_segments, rotation_direction);
         hardware_scheduler.schedule(debug_delay_ms, go_to_segment_a);
     }
 }
 
 void go_to_next_segment() {
+    pump_signal::low();
+
+    if (total_segments == 0) {
+        stop_machine();
+        return;
+    }
+
     hardware_scheduler.clear();
     stepper.rotate(steps_per_revolution / 12, rotation_direction);
     hardware_scheduler.schedule(0, go_to_rotate_30_deg);
 }
 
-void button_handler(zoal::io::button_event e, uint8_t button) {
-    if (e != zoal::io::button_event::press) {
+void vt100_callback(const zoal::misc::terminal_input *, const char *s, const char *e) {
+    transport.send_data(s, e - s);
+}
+
+void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::command_line_event e) {
+    if (e == zoal::misc::command_line_event::line_end) {
         return;
     }
 
-    switch (button) {
-    case 0:
-        go_to_next_segment();
-        break;
-    case 1:
-        calibrate();
-        break;
-    case 2:
-        stream << "Button 2!\r\n";
-        break;
-    default:
-        break;
+    auto ts = p->token_start();
+    auto te = p->token_end();
+    p->callback(&command_line_parser::empty_callback);
+
+    stream << "\r\n";
+
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(help_cmd), ts, te)) {
+        stream << "Help!!\r\n";
     }
+
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(calibrate_cmd), ts, te)) {
+        calibrate();
+    }
+
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(next_cmd), ts, te)) {
+        drinks_left = 1;
+        go_to_next_segment();
+    }
+
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(go_cmd), ts, te)) {
+        drinks_left = total_segments;
+        go_to_next_segment();
+    }
+
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(pump_cmd), ts, te)) {
+        pump_signal::mode<zoal::gpio::pin_mode::output>();
+        pump_signal::high();
+        delay::ms(500);
+        stop_machine();
+    }
+
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(adc_cmd), ts, te)) {
+        mcu::mux::adc<adc, hall_sensor>::connect();
+        int value = adc::read();
+        stream << "hall: " << value << "\r\n";
+
+        mcu::mux::adc<adc, ir_sensor>::connect();
+        value = adc::read();
+        stream << "ir: " << value << "\r\n";
+    }
+
+    terminal.sync();
+}
+
+void input_callback(const zoal::misc::terminal_input *, const char *s, const char *e) {
+    command_line_parser cmd_parser(nullptr, 0);
+    cmd_parser.callback(cmd_select_callback);
+    cmd_parser.scan(s, e, e);
+    terminal.sync();
 }
 
 int main() {
     initialize_hardware();
 
-    mcu::mux::adc<adc, pcb::ard_a05>::connect();
-    detector.handle(adc::read());
+    terminal.vt100_feedback(&vt100_callback);
+    terminal.input_callback(&input_callback);
+    terminal.greeting(terminal_greeting);
+    terminal.clear();
+    terminal.sync();
 
-    stream << "\033cStart!!!\r\n";
-
-    shield.dec_to_segments(total_segments);
-    calibrate();
+    //    pump_signal::mode<zoal::gpio::pin_mode::output>();
+    //    pump_signal::high();
+    //    delay::ms(100);
+    //    stop_machine();
 
     while (true) {
+        uint8_t rx_byte = 0;
+        bool result;
+        {
+            zoal::utils::interrupts_off scope_off;
+            result = rx_buffer.pop_front(rx_byte);
+        }
+
+        if (result) {
+            terminal.push(&rx_byte, 1);
+        }
+
         hardware_scheduler.handle();
         general_scheduler.handle();
-
-        shield.handle_buttons(milliseconds, button_handler);
-        shield.dynamic_indication();
     }
 
     return 0;
 }
 
-ISR(ADC_vect) {
-    auto v = adc::value();
-    if (max_adc < v) {
-        max_adc = v;
-    }
-
-    if (min_adc > v) {
-        min_adc = v;
-    }
-}
+ISR(ADC_vect) {}
 
 ISR(TIMER0_OVF_vect) {
     milliseconds += overflow_to_tick::step();

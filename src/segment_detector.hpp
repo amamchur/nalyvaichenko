@@ -17,9 +17,9 @@ public:
 
     function_state state{function_state::none};
     int prev_value{0};
-    int min_value{170};
-    int max_value{550};
-    int threshold{30};
+    int sector_a_value{750};
+    int sector_b_value{500};
+    int threshold{50};
 };
 
 

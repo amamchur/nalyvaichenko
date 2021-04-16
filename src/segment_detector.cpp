@@ -15,12 +15,12 @@ bool segment_detector::handle(int value) {
     prev_value = value;
 
     function_state st = function_state::none;
-    d = abs(value - min_value);
+    d = abs(value - sector_a_value);
     if (d < threshold) {
         st = function_state::sector_a;
     }
 
-    d = abs(value - max_value);
+    d = abs(value - sector_b_value);
     if (d < threshold) {
         st = function_state::sector_b;
     }

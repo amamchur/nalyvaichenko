@@ -1,1 +1,3 @@
 /cmake-build-release/
+/src/cmd_line_parser.rl.cpp
+/src/terminal_machine.rl.cpp
