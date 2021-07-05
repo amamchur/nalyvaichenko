@@ -33,16 +33,24 @@ endfunction()
 
 include_directories(include)
 
-ragel_generate_cpp(src/cmd_line_parser.rl CMD_STATE_MACHINE_SRC)
-ragel_generate_cpp(src/terminal_machine.rl TERMINAL_STATE_MACHINE_SRC)
+ragel_generate_cpp(src/parsers/cmd_line_parser.rl CMD_STATE_MACHINE_SRC)
+ragel_generate_cpp(src/parsers/terminal_machine.rl TERMINAL_STATE_MACHINE_SRC)
 
 add_mcu_executable(
         nalyvaichenko
-        atmega328p
+        atmega2560
         src/main.cpp
+        src/ascii_logo.cpp
         src/segment_detector.cpp
         src/terminal_input.cpp
-        src/barman.cpp
+        src/tty_terminal.cpp
+        src/hardware.cpp
+        src/command.cpp
+        src/gui.cpp
+        src/app_state.cpp
+        src/fonts/roboto_regular_18.cpp
+        src/fonts/roboto_regular_16.cpp
+        src/fonts/roboto_regular_12.cpp
         ${TERMINAL_STATE_MACHINE_SRC}
         ${CMD_STATE_MACHINE_SRC}
         )

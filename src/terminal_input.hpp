@@ -1,7 +1,7 @@
 #ifndef ZOAL_TERMINAL_INPUT_HPP
 #define ZOAL_TERMINAL_INPUT_HPP
 
-#include "terminal_machine.hpp"
+#include "parsers/terminal_machine.hpp"
 
 namespace zoal { namespace misc {
     class terminal_input : public zoal::parse::ragel_scanner<terminal_machine> {
