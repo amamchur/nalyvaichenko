@@ -7,6 +7,7 @@
 #include "./gui.hpp"
 #include "./hardware.hpp"
 #include "./tty_terminal.hpp"
+#include "./ecafe_logo.hpp"
 
 #include <avr/io.h>
 #include <avr/pgmspace.h>
@@ -120,6 +121,9 @@ void process_command() {
     }
 
     auto type = cmd.type;
+
+    tty_stream << "cmd: " << (int)type << "\r\n";
+
     switch (type) {
     case command_type::show_help:
         tty_stream << "\033[2K\r";
@@ -146,7 +150,7 @@ void process_command() {
     case command_type::request_render_frame:
         i2c_req_dispatcher.handle_until_finished();
         user_interface.render();
-        display.display(i2c_req_dispatcher)([](int) {});
+        screen.display(i2c_req_dispatcher)([](int) {});
         break;
     case command_type::request_next_render_frame:
         general_scheduler.schedule(display_fresh_delay, send_render_cmd);
@@ -212,9 +216,8 @@ int main() {
     tty_stream << zoal::io::progmem_str(ascii_logo) << zoal::io::progmem_str(help_msg);
     terminal.sync();
 
-    global_app_state.flags |= app_state_flags_error;
-
-    send_command(command_type::request_render_frame);
+    memcpy_P(screen.buffer.canvas, ecafe_logo, sizeof(screen.buffer.canvas));
+    screen.display(i2c_req_dispatcher)([](int) {});
 
     while (true) {
         process_terminal();

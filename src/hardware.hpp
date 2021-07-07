@@ -38,10 +38,10 @@ extern zoal::periph::i2c_request &request;
 extern zoal::utils::i2c_scanner scanner;
 
 using ssd1306_interface = zoal::ic::ssd1306_interface_i2c<delay, typename pcb::ard_d07, typename pcb::ard_d08, 0x3C>;
-using display_type = zoal::ic::ssd1306<zoal::ic::ssd1306_resolution::ssd1306_128x64, ssd1306_interface>;
+using oled_type = zoal::ic::ssd1306<zoal::ic::ssd1306_resolution::ssd1306_128x64, ssd1306_interface>;
 using adapter = zoal::ic::ssd1306_adapter_0<128, 64>;
 using graphics = zoal::gfx::renderer<uint8_t, adapter>;
-extern display_type display;
+extern oled_type screen;
 
 using hall_sensor = pcb::ard_a05;
 using hall_channel = zoal::periph::adc_channel<mcu, adc, hall_sensor>;

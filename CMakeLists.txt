@@ -48,6 +48,7 @@ add_mcu_executable(
         src/command.cpp
         src/gui.cpp
         src/app_state.cpp
+        src/ecafe_logo.cpp
         src/fonts/roboto_regular_18.cpp
         src/fonts/roboto_regular_16.cpp
         src/fonts/roboto_regular_12.cpp

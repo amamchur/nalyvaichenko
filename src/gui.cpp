@@ -8,15 +8,17 @@
 #include "./fonts/roboto_regular_12.hpp"
 #include "./fonts/roboto_regular_16.hpp"
 #include "./fonts/roboto_regular_18.hpp"
+#include "./tty_terminal.hpp"
 
 #include <avr/pgmspace.h>
+#include <zoal/arch/avr/utils/progmem_reader.hpp>
 #include <zoal/gfx/glyph_render.hpp>
 #include <zoal/gfx/renderer.hpp>
 
 menu_item::menu_item(const wchar_t *t)
     : text(t) {}
 
-menu_item::menu_item(const wchar_t *t, void (*a)())
+menu_item::menu_item(const wchar_t *t, void (*a)(gui &))
     : text(t)
     , action(a) {}
 
@@ -27,22 +29,27 @@ static const wchar_t menu1_text[] PROGMEM = L"Запуск";
 static const wchar_t menu2_text[] PROGMEM = L"Калібування";
 static const wchar_t menu3_text[] PROGMEM = L"Револьвер";
 static const wchar_t menu4_text[] PROGMEM = L"Сегмент++";
-static const wchar_t menu5_text[] PROGMEM = L"Привіт 5";
+static const wchar_t menu5_text[] PROGMEM = L"Лого";
 
 menu_item item1(menu1_text);
 
-static void calibrate_action() {
+static void calibrate_action(gui &) {
     send_command(command_type::calibrate);
 }
 
 menu_item item2(menu2_text, calibrate_action);
 menu_item item3(menu3_text);
 
-static void next_segment_action() {
+static void next_segment_action(gui &) {
     send_command(command_type::next_segment);
 }
 
 menu_item item4(menu4_text, next_segment_action);
+
+static void logo_action(gui &gui) {
+
+    send_command(command_type::request_render_frame);
+}
 menu_item item5(menu5_text);
 
 gui::gui(app_state &app_state)
@@ -64,8 +71,8 @@ gui::gui(app_state &app_state)
 
 void gui::render_calibration() {
     auto font = &roboto_regular_18;
-    auto g = graphics::from_memory(display.buffer.canvas);
-    zoal::gfx::glyph_render<graphics> gr(g, font);
+    auto g = graphics::from_memory(screen.buffer.canvas);
+    zoal::gfx::glyph_render<graphics, zoal::utils::progmem_reader> gr(g, font);
 
     g->clear(0);
     gr.position(0, font->y_advance);
@@ -86,11 +93,10 @@ void gui::render_calibration() {
     send_command(command_type::request_next_render_frame);
 }
 
-
 void gui::render_error() {
     auto font = &roboto_regular_18;
-    auto g = graphics::from_memory(display.buffer.canvas);
-    zoal::gfx::glyph_render<graphics> gr(g, font);
+    auto g = graphics::from_memory(screen.buffer.canvas);
+    zoal::gfx::glyph_render<graphics, zoal::utils::progmem_reader> gr(g, font);
 
     g->clear(0);
     gr.position(0, font->y_advance);
@@ -99,8 +105,8 @@ void gui::render_error() {
 
 void gui::render_menu() const {
     auto font = &roboto_regular_18;
-    auto g = graphics::from_memory(display.buffer.canvas);
-    zoal::gfx::glyph_render<graphics> gr(g, font);
+    auto g = graphics::from_memory(screen.buffer.canvas);
+    zoal::gfx::glyph_render<graphics, zoal::utils::progmem_reader> gr(g, font);
 
     g->clear(0);
 
@@ -143,20 +149,15 @@ void gui::render() {
     render_menu();
 }
 
-void gui::render_progmem_text(zoal::gfx::glyph_render<graphics> &gr, const wchar_t *ptr) {
-    auto v = pgm_read_word(ptr++);
-    while (v != 0) {
-        gr.draw((wchar_t)v, 1);
-        v = pgm_read_word(ptr++);
-    }
-}
-
 void gui::next_item() {
+    tty_stream << "1" << "\r\n";
     if (app_state_.flags != app_state_flags_idle) {
         return;
     }
 
+    tty_stream << "2" << "\r\n";
     if (current_->next != nullptr) {
+        tty_stream << "3" << "\r\n";
         current_ = current_->next;
         send_command(command_type::request_render_frame);
     }
@@ -184,7 +185,7 @@ void gui::exec_item() {
     }
 
     if (current_->action != nullptr) {
-        current_->action();
+        current_->action(*this);
         send_command(command_type::request_render_frame);
     }
 }

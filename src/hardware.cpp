@@ -9,7 +9,7 @@ volatile uint32_t milliseconds = 0;
 i2c_req_dispatcher_type i2c_req_dispatcher;
 zoal::periph::i2c_request &request = i2c_req_dispatcher.request;
 zoal::utils::i2c_scanner scanner;
-display_type display;
+oled_type screen;
 
 bartender_machine_type bartender(global_app_state);
 encoder_type encoder;
@@ -61,7 +61,7 @@ void initialize_hardware() {
 }
 
 void initialize_i2c_devices() {
-    display.init(i2c_req_dispatcher)([&](int) { });
+    screen.init(i2c_req_dispatcher)([&](int) { });
     i2c_req_dispatcher.handle_until_finished();
 }
 

@@ -9,15 +9,17 @@
 #include "command.hpp"
 #include "hardware.hpp"
 
+#include <avr/pgmspace.h>
 #include <zoal/gfx/glyph_render.hpp>
 
+class gui;
 class menu_item {
 public:
     explicit menu_item(const wchar_t *t);
-    menu_item(const wchar_t *t, void (*a)());
+    menu_item(const wchar_t *t, void (*a)(gui &));
 
     const wchar_t *text{nullptr};
-    void (*action)(){nullptr};
+    void (*action)(gui &gui){nullptr};
     menu_item *prev{nullptr};
     menu_item *next{nullptr};
 };
@@ -33,7 +35,14 @@ public:
     void render();
 
 private:
-    static void render_progmem_text(zoal::gfx::glyph_render<graphics> &gr, const wchar_t *ptr) ;
+    template<class G, class R>
+    static void render_progmem_text(zoal::gfx::glyph_render<G, R> &gr, const wchar_t *ptr) {
+        auto v = pgm_read_word(ptr++);
+        while (v != 0) {
+            gr.draw((wchar_t)v, 1);
+            v = pgm_read_word(ptr++);
+        }
+    }
 
     menu_item *current_{nullptr};
     app_state &app_state_;
