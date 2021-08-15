@@ -12,6 +12,7 @@
 #include <zoal/board/arduino_mega.hpp>
 #include <zoal/gfx/renderer.hpp>
 #include <zoal/ic/ssd1306.hpp>
+#include <zoal/ic/sh1106.hpp>
 #include <zoal/io/button.hpp>
 #include <zoal/io/rotary_encoder.hpp>
 #include <zoal/io/stepper_28byj.hpp>
@@ -33,8 +34,8 @@ extern zoal::periph::i2c_request &request;
 extern zoal::utils::i2c_scanner scanner;
 
 using ssd1306_interface = zoal::ic::ssd1306_interface_i2c<0x3C>;
-using oled_type = zoal::ic::ssd1306<128, 64, ssd1306_interface>;
-using adapter = zoal::ic::ssd1306_adapter_0<128, 64>;
+using oled_type = zoal::ic::sh1106<128, 64, ssd1306_interface>;
+using adapter = zoal::ic::sh1106_adapter_0<128, 64>;
 using graphics = zoal::gfx::renderer<uint8_t, adapter>;
 extern oled_type screen;
 

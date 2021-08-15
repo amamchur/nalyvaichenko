@@ -1,7 +1,3 @@
-//
-// Created by andrii on 03.07.21.
-//
-
 #ifndef NALYVAICHENKO_COMMAND_HPP
 #define NALYVAICHENKO_COMMAND_HPP
 
@@ -10,6 +6,7 @@
 enum class command_type {
     //
     none,
+    go,
     show_help,
     show_adc,
     pump,
@@ -22,7 +19,8 @@ enum class command_type {
     prev_item,
     exec_item,
     clear_error,
-    play
+    play,
+    logo
 };
 
 class command {
@@ -33,6 +31,7 @@ public:
         : type(t) {}
 
     command_type type{command_type::none};
+    int value{0};
 };
 
 void send_command(command_type type);

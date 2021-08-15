@@ -23,7 +23,8 @@ ISR(USART1_UDRE_vect) {
 df_player::df_player() = default;
 
 void df_player::send() {
-    df_player_rx.send_data(message_, sizeof(message_));
+    waiting_ack_ = true;
+    df_player_rx.send_data(request_, sizeof(request_));
     delay::ms(10);
 }
 
@@ -40,10 +41,17 @@ void df_player::uint16ToArray(uint16_t value, uint8_t *array) {
     *(array + 1) = (uint8_t)(value);
 }
 
+uint16_t df_player::arrayToUint16(const uint8_t *array){
+    uint16_t value = *array;
+    value <<=8;
+    value += *(array+1);
+    return value;
+}
+
 void df_player::send_command(uint8_t command, uint16_t argument) {
-    message_[msg_command] = command;
-    uint16ToArray(argument, message_ + msg_parameter);
-    uint16ToArray(calculate_check_sum(message_), message_ + msg_checksum);
+    request_[msg_command] = command;
+    uint16ToArray(argument, request_ + msg_parameter);
+    uint16ToArray(calculate_check_sum(request_), request_ + msg_checksum);
     send();
 }
 
@@ -53,4 +61,49 @@ void df_player::reset() {
 
 void df_player::play(int fileNumber) {
     send_command(0x03, fileNumber);
+}
+
+void df_player::push_byte(uint8_t byte) {
+    response_[response_bytes_++] = byte;
+    if (response_bytes_ == sizeof(response_)) {
+        process_response();
+        response_bytes_ = 0;
+    }
+}
+
+void df_player::process_response() {
+//    using hex = zoal::io::hexadecimal_functor<uint8_t>;
+    auto cs1 = calculate_check_sum(response_);
+    auto cs2 = arrayToUint16(response_ + msg_checksum);
+
+//    tty_stream << "\033[2K\r";
+
+    if (cs1 != cs2) {
+        waiting_ack_ = false;
+        tty_stream << "Bad checksum!!!" << "\r\n";
+        return;
+    }
+
+    auto params = arrayToUint16(response_ + msg_parameter);
+    auto cmd = response_[msg_command];
+    switch (cmd) {
+    case 0x41:
+        waiting_ack_ = false;
+        break;
+    default:
+        if (callback_) {
+            callback_(cmd, params);
+        }
+        break;
+    }
+
+//    for (unsigned char i : request_) {
+//        tty_stream << hex(i) << " ";
+//    }
+//    tty_stream <<"\r\n";
+//
+//    for (unsigned char i : response_) {
+//        tty_stream << hex(i) << " ";
+//    }
+//    tty_stream <<"\r\n";
 }

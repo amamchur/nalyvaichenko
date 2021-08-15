@@ -49,7 +49,9 @@ void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::comman
     static const char next_item[] PROGMEM = "next-item";
     static const char prev_item[] PROGMEM = "prev-item";
     static const char exec_item[] PROGMEM = "exec-item";
-    static const char play_cmd[] PROGMEM = "play";
+    static const char play1_cmd[] PROGMEM = "play1";
+    static const char play2_cmd[] PROGMEM = "play2";
+    static const char play3_cmd[] PROGMEM = "play3";
 
     if (e == zoal::misc::command_line_event::line_end) {
         return;
@@ -79,8 +81,7 @@ void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::comman
     }
 
     if (cmp_progmem_str_token(zoal::io::progmem_str_iter(go_cmd), ts, te)) {
-        //        drinks_left = total_segments;
-        //        go_to_next_segment();
+        send_command(command_type::go);
     }
 
     if (cmp_progmem_str_token(zoal::io::progmem_str_iter(pump_cmd), ts, te)) {
@@ -103,8 +104,20 @@ void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::comman
         send_command(command_type::exec_item);
     }
 
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play_cmd), ts, te)) {
-        send_command(command_type::play);
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play1_cmd), ts, te)) {
+        command cmd(command_type::play);
+        cmd.value = 1;
+        send_command(cmd);
+    }
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play2_cmd), ts, te)) {
+        command cmd(command_type::play);
+        cmd.value = 2;
+        send_command(cmd);
+    }
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play3_cmd), ts, te)) {
+        command cmd(command_type::play);
+        cmd.value = 3;
+        send_command(cmd);
     }
 }
 
@@ -141,8 +154,13 @@ void process_command() {
         break;
     }
     case command_type::calibrate:
+        player.play(voice::calibration);
         bartender.calibrate();
         send_command(command_type::request_render_frame);
+        break;
+    case command_type::go:
+        bartender.portions_left_ = bartender.total_segments_;
+        bartender.go_to_next_segment();
         break;
     case command_type::scan_i2c:
         scan_i2c();
@@ -178,14 +196,18 @@ void process_command() {
         send_command(command_type::request_render_frame);
         break;
     case command_type::play:
-        player.play(voice::calibration);
+        player.play(cmd.value);
+        break;
+    case command_type::logo:
+        memcpy_P(screen.buffer.canvas, ecafe_logo, sizeof(screen.buffer.canvas));
+        screen.display(i2c_req_dispatcher)([](int) {});
         break;
     default:
         break;
     }
 };
 
-void process_terminal() {
+void process_terminal_rx() {
     uint8_t rx_byte = 0;
     bool result;
     {
@@ -198,9 +220,7 @@ void process_terminal() {
     }
 }
 
-void debug_player() {
-    using hex = zoal::io::hexadecimal_functor<uint8_t>;
-
+void process_player_rx() {
     uint8_t rx_byte = 0;
     bool result;
     {
@@ -209,7 +229,7 @@ void debug_player() {
     }
 
     if (result) {
-        tty_stream << "\033[2K\r" << hex(rx_byte) << "\r\n";
+        player.push_byte(rx_byte);
     }
 }
 
@@ -232,11 +252,6 @@ void process_encoder() {
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
 
-void say_hello(void *) {
-    tty_stream << "\033[2K\r" << "-----" << "\r\n";
-    player.play(1);
-}
-
 int main() {
     initialize_hardware();
     initialize_i2c_devices();
@@ -248,21 +263,24 @@ int main() {
     tty_stream << zoal::io::progmem_str(ascii_logo) << zoal::io::progmem_str(help_msg);
     terminal.sync();
 
-    memcpy_P(screen.buffer.canvas, ecafe_logo, sizeof(screen.buffer.canvas));
-    screen.display(i2c_req_dispatcher)([](int) {});
-
+    player.callback_.assign([](uint8_t cmd, uint16_t param) {
+        if (cmd == df_player::cmd_init_params && param == 2) {
+            player.callback_.reset();
+            player.play(voice::hello);
+        }
+    });
     player.reset();
 
-    general_scheduler.schedule(0, 1000, say_hello);
+    send_command(command_type::logo);
     while (true) {
-        process_terminal();
+        process_terminal_rx();
         process_command();
         process_encoder();
 
         bartender.handle();
         i2c_req_dispatcher.handle();
         general_scheduler.handle(milliseconds);
-        debug_player();
+        process_player_rx();
     }
 
     return 0;

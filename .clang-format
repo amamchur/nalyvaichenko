@@ -8,8 +8,8 @@ Standard: c++11
 
 AccessModifierOffset: -4
 AlignAfterOpenBracket: Align
-AlignConsecutiveAssignments: false
-AlignConsecutiveDeclarations: false
+AlignConsecutiveAssignments: None
+AlignConsecutiveDeclarations: None
 AlignOperands: true
 AlignTrailingComments: false
 AllowAllParametersOfDeclarationOnNextLine: true
@@ -26,22 +26,21 @@ BinPackArguments: false
 BinPackParameters: false
 
 BreakBeforeBraces: Custom
-BraceWrapping: {
-  AfterClass: 'false'
-    AfterControlStatement: 'false'
-    AfterEnum: 'false'
-    AfterFunction: 'false'
-    AfterNamespace: 'false'
-    AfterStruct: 'false'
-    AfterUnion: 'false'
-    BeforeCatch: 'false'
-    BeforeElse: 'false'
-    IndentBraces: 'false'
-    AfterExternBlock: 'false'
-    SplitEmptyFunction: 'false'
-    SplitEmptyRecord: 'false'
-    SplitEmptyNamespace: 'false'
-}
+BraceWrapping:
+    AfterClass: false
+    AfterControlStatement: Never
+    AfterEnum: false
+    AfterFunction: false
+    AfterNamespace: false
+    AfterStruct: false
+    AfterUnion: false
+    BeforeCatch: false
+    BeforeElse: false
+    IndentBraces: false
+    AfterExternBlock: false
+    SplitEmptyFunction: false
+    SplitEmptyRecord: false
+    SplitEmptyNamespace: false
 
 BreakAfterJavaFieldAnnotations: true
 BreakBeforeInheritanceComma: false
@@ -93,7 +92,7 @@ SpacesInSquareBrackets: false
 SpaceAfterTemplateKeyword: false
 
 SortUsingDeclarations: true
-SortIncludes: true
+SortIncludes: CaseSensitive
 ReflowComments: false
 
 IncludeBlocks: Regroup

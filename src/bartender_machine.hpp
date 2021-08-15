@@ -32,7 +32,7 @@ public:
     static constexpr uint32_t steps_per_revolution = 4096u;
     static constexpr uint8_t rotation_direction = 1;
     static constexpr uint32_t debug_delay_ms = 0;
-    static constexpr uint32_t step_delay_ms = 1;
+    static constexpr uint32_t step_delay_ms = 2;
 
     explicit bartender_machine(app_state &state)
         : app_state_(state) {}
@@ -44,7 +44,10 @@ public:
     void make_drink() {
         int value = ir_channel::read();
         portions_left_--;
-        if (value < 700 && portions_left_ >= 0) {
+
+        tty_stream << "ir_channel: " << value << "\r\n";
+
+        if (value < ir_max_value_ && portions_left_ >= 0) {
             typename pump_signal::template mode<zoal::gpio::pin_mode::output>();
             typename pump_signal::high();
             scheduler_.schedule(0, portion_delay_, [this]() { make_next_if_needed(); });
@@ -131,7 +134,7 @@ public:
         } else {
             stepper_.stop();
             app_state_.flags = app_state_flags_idle;
-            send_command(command_type::request_render_frame);
+            app_state_.total_segments = total_segments_;
         }
     }
 
@@ -168,6 +171,7 @@ public:
         } else {
             stop_machine();
             app_state_.flags = app_state_flags_error;
+            send_command(command_type::request_render_frame);
         }
     }
 
@@ -192,7 +196,6 @@ public:
         app_state_.progress_fn.reset();
     }
 
-private:
     stepper_type stepper_;
     scheduler_type scheduler_;
     segment_detector detector_;
@@ -200,6 +203,7 @@ private:
     uint32_t portion_delay_{850};
     int total_segments_{6};
     int portions_left_{0};
+    int ir_max_value_{300};
 
     app_state &app_state_;
 };

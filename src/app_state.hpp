@@ -1,7 +1,3 @@
-//
-// Created by andrii on 03.07.21.
-//
-
 #ifndef NALYVAICHENKO_APP_STATE_HPP
 #define NALYVAICHENKO_APP_STATE_HPP
 
@@ -18,7 +14,7 @@ class app_state {
 public:
     volatile uint32_t flags{app_state_flags_idle};
     zoal::func::function<32, float> progress_fn;
-    const wchar_t *error_msg{nullptr};
+    int total_segments;
 };
 
 extern app_state global_app_state;

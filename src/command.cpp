@@ -1,7 +1,3 @@
-//
-// Created by andrii on 03.07.21.
-//
-
 #include "command.hpp"
 
 #include <zoal/utils/interrupts.hpp>

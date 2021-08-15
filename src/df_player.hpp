@@ -9,6 +9,7 @@
 
 #include <zoal/arch/avr/utils/usart_transmitter.hpp>
 #include <zoal/io/output_stream.hpp>
+#include <zoal/func/function.hpp>
 
 constexpr size_t df_player_rx_buffer_size = 16;
 
@@ -31,16 +32,28 @@ public:
     static constexpr uint8_t msg_checksum = 7;
     static constexpr uint8_t msg_end = 9;
 
+    static constexpr uint8_t cmd_init_params= 0x3F;
+
     df_player();
 
     void reset();
     void send();
 
-    uint8_t message_[df_player_message_size]{0x7E, 0xFF, 06, 00, 01, 00, 00, 00, 00, 0xEF};
+    uint8_t request_[df_player_message_size]{0x7E, 0xFF, 06, 00, 01, 00, 00, 00, 00, 0xEF};
+    uint8_t response_[df_player_message_size]{0x7E, 0xFF, 06, 00, 01, 00, 00, 00, 00, 0xEF};
+    int response_bytes_{0};
+    bool waiting_ack_{false};
+    zoal::func::function<16, void, uint8_t, uint16_t> callback_;
+
     static uint16_t calculate_check_sum(const uint8_t *buffer);
     static void uint16ToArray(uint16_t value, uint8_t *array);
     void send_command(uint8_t command, uint16_t argument = 0);
     void play(int fileNumber);
+
+    void push_byte(uint8_t byte);
+    void process_response();
+
+    uint16_t arrayToUint16(const uint8_t *array);
 };
 
 #endif

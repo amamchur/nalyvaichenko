@@ -5,6 +5,7 @@
 #include "gui.hpp"
 
 #include "./fonts/roboto_regular_18.hpp"
+#include "./voice.hpp"
 
 #include <avr/pgmspace.h>
 #include <zoal/arch/avr/utils/progmem_reader.hpp>
@@ -26,8 +27,13 @@ static const wchar_t menu2_text[] PROGMEM = L"Калібування";
 static const wchar_t menu3_text[] PROGMEM = L"Револьвер";
 static const wchar_t menu4_text[] PROGMEM = L"Сегмент++";
 static const wchar_t menu5_text[] PROGMEM = L"Лого";
+static const wchar_t menu6_text[] PROGMEM = L"Привіт";
 
-menu_item item1(menu1_text);
+static void go_action(gui &) {
+    send_command(command_type::go);
+}
+
+menu_item item1(menu1_text, go_action);
 
 static void calibrate_action(gui &) {
     send_command(command_type::calibrate);
@@ -43,10 +49,18 @@ static void next_segment_action(gui &) {
 menu_item item4(menu4_text, next_segment_action);
 
 static void logo_action(gui &gui) {
-    send_command(command_type::request_render_frame);
+    send_command(command_type::logo);
 }
 
-menu_item item5(menu5_text);
+menu_item item5(menu5_text, logo_action);
+
+static void hello(gui &) {
+    command cmd(command_type::play);
+    cmd.value = voice::hello;
+    send_command(cmd);
+}
+
+menu_item item6(menu6_text, hello);
 
 gui::gui(app_state &app_state)
     : app_state_(app_state) {
@@ -62,6 +76,9 @@ gui::gui(app_state &app_state)
     item4.next = &item5;
     item5.prev = &item4;
 
+    item5.next = &item6;
+    item6.prev = &item5;
+
     current_ = &item1;
 }
 
@@ -71,21 +88,9 @@ void gui::render_calibration() {
     zoal::gfx::glyph_renderer<graphics, zoal::utils::progmem_reader> gr(g, font);
 
     g->clear(0);
-    gr.position(0, font->y_advance);
+    gr.color(1);
+    gr.position(0, font->y_advance * 2);
     render_progmem_text(gr, text_calibration);
-
-    float p = 0;
-    if (app_state_.progress_fn) {
-        p = app_state_.progress_fn();
-    }
-
-    constexpr int padding_left = 2;
-    constexpr int padding_right = 2;
-    constexpr int bar_width = 128 - padding_left - padding_right;
-    constexpr int bar_height = 10;
-    g->draw_rect(padding_left, 30, bar_width, bar_height, 1);
-    g->fill_rect(padding_left, 30, static_cast<int>(bar_width * p), bar_height, 1);
-//    send_command(command_type::request_next_render_frame);
 }
 
 void gui::render_error() {
@@ -179,6 +184,5 @@ void gui::exec_item() {
 
     if (current_->action != nullptr) {
         current_->action(*this);
-        send_command(command_type::request_render_frame);
     }
 }
