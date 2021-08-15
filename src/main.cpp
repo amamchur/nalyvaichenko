@@ -109,11 +109,13 @@ void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::comman
         cmd.value = 1;
         send_command(cmd);
     }
+
     if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play2_cmd), ts, te)) {
         command cmd(command_type::play);
         cmd.value = 2;
         send_command(cmd);
     }
+
     if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play3_cmd), ts, te)) {
         command cmd(command_type::play);
         cmd.value = 3;

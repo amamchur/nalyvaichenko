@@ -32,7 +32,7 @@ public:
     static constexpr uint32_t steps_per_revolution = 4096u;
     static constexpr uint8_t rotation_direction = 1;
     static constexpr uint32_t debug_delay_ms = 0;
-    static constexpr uint32_t step_delay_ms = 2;
+    static constexpr uint32_t step_delay_ms = 1;
 
     explicit bartender_machine(app_state &state)
         : app_state_(state) {}

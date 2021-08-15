@@ -27,7 +27,8 @@ static const wchar_t menu2_text[] PROGMEM = L"Калібування";
 static const wchar_t menu3_text[] PROGMEM = L"Револьвер";
 static const wchar_t menu4_text[] PROGMEM = L"Сегмент++";
 static const wchar_t menu5_text[] PROGMEM = L"Лого";
-static const wchar_t menu6_text[] PROGMEM = L"Привіт";
+static const wchar_t menu5_1_text[] PROGMEM = L"Привіт";
+static const wchar_t menu6_text[] PROGMEM = L"Прокачка";
 
 static void go_action(gui &) {
     send_command(command_type::go);
@@ -60,7 +61,13 @@ static void hello(gui &) {
     send_command(cmd);
 }
 
-menu_item item6(menu6_text, hello);
+menu_item item5_1(menu5_1_text, hello);
+
+static void pump(gui &) {
+    send_command(command_type::pump);
+}
+
+menu_item item6(menu6_text, pump);
 
 gui::gui(app_state &app_state)
     : app_state_(app_state) {
@@ -78,6 +85,9 @@ gui::gui(app_state &app_state)
 
     item5.next = &item6;
     item6.prev = &item5;
+
+//    item6.next = &item7;
+//    item7.prev = &item6;
 
     current_ = &item1;
 }
