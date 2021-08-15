@@ -1,26 +1,20 @@
-//
-// Created by andrii on 04.04.21.
-//
-
 #include "./ascii_logo.hpp"
 #include "./command.hpp"
-#include "./gui.hpp"
-#include "./hardware.hpp"
-#include "./tty_terminal.hpp"
+#include "./df_player.hpp"
 #include "./ecafe_logo.hpp"
+#include "./gui.hpp"
+#include "./voice.hpp"
 
 #include <avr/io.h>
 #include <avr/pgmspace.h>
 #include <zoal/arch/avr/stream.hpp>
-#include <zoal/gfx/glyph_render.hpp>
-#include <zoal/gfx/renderer.hpp>
 
-FUSES = {.low = 0xFF, .high = 0xD1, .extended = 0xFF};
+FUSES = {.low = 0xFF, .high = 0xDF, .extended = 0xFC};
 
 constexpr uint8_t fps = 20;
 constexpr uint32_t display_fresh_delay = 1000 / fps;
 
-using scheduler_type = zoal::utils::function_scheduler<counter, 8, void *>;
+using scheduler_type = zoal::utils::function_scheduler<uint32_t, 8, void *>;
 scheduler_type general_scheduler;
 
 gui user_interface{global_app_state};
@@ -54,6 +48,8 @@ void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::comman
     static const char pump_cmd[] PROGMEM = "pump";
     static const char next_item[] PROGMEM = "next-item";
     static const char prev_item[] PROGMEM = "prev-item";
+    static const char exec_item[] PROGMEM = "exec-item";
+    static const char play_cmd[] PROGMEM = "play";
 
     if (e == zoal::misc::command_line_event::line_end) {
         return;
@@ -78,6 +74,7 @@ void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::comman
     }
 
     if (cmp_progmem_str_token(zoal::io::progmem_str_iter(next_cmd), ts, te)) {
+        bartender.stop_machine();
         bartender.go_to_next_segment();
     }
 
@@ -101,6 +98,14 @@ void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::comman
     if (cmp_progmem_str_token(zoal::io::progmem_str_iter(prev_item), ts, te)) {
         send_command(command_type::prev_item);
     }
+
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(exec_item), ts, te)) {
+        send_command(command_type::exec_item);
+    }
+
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play_cmd), ts, te)) {
+        send_command(command_type::play);
+    }
 }
 
 void input_callback(const zoal::misc::terminal_input *, const char *s, const char *e) {
@@ -122,8 +127,6 @@ void process_command() {
 
     auto type = cmd.type;
 
-    tty_stream << "cmd: " << (int)type << "\r\n";
-
     switch (type) {
     case command_type::show_help:
         tty_stream << "\033[2K\r";
@@ -144,6 +147,12 @@ void process_command() {
     case command_type::scan_i2c:
         scan_i2c();
         break;
+    case command_type::pump:
+        pump_signal::mode<zoal::gpio::pin_mode::output>();
+        pump_signal::_1();
+        delay::ms(500);
+        pump_signal::_0();
+        break;
     case command_type::next_segment:
         bartender.go_to_next_segment();
         break;
@@ -153,7 +162,7 @@ void process_command() {
         screen.display(i2c_req_dispatcher)([](int) {});
         break;
     case command_type::request_next_render_frame:
-        general_scheduler.schedule(display_fresh_delay, send_render_cmd);
+        general_scheduler.schedule(0, display_fresh_delay, send_render_cmd);
         break;
     case command_type::next_item:
         user_interface.next_item();
@@ -167,6 +176,9 @@ void process_command() {
     case command_type::clear_error:
         global_app_state.flags = app_state_flags_idle;
         send_command(command_type::request_render_frame);
+        break;
+    case command_type::play:
+        player.play(voice::calibration);
         break;
     default:
         break;
@@ -183,6 +195,21 @@ void process_terminal() {
 
     if (result) {
         terminal.push(&rx_byte, 1);
+    }
+}
+
+void debug_player() {
+    using hex = zoal::io::hexadecimal_functor<uint8_t>;
+
+    uint8_t rx_byte = 0;
+    bool result;
+    {
+        zoal::utils::interrupts_off scope_off;
+        result = df_player_rx_buffer.pop_front(rx_byte);
+    }
+
+    if (result) {
+        tty_stream << "\033[2K\r" << hex(rx_byte) << "\r\n";
     }
 }
 
@@ -205,6 +232,11 @@ void process_encoder() {
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
 
+void say_hello(void *) {
+    tty_stream << "\033[2K\r" << "-----" << "\r\n";
+    player.play(1);
+}
+
 int main() {
     initialize_hardware();
     initialize_i2c_devices();
@@ -219,6 +251,9 @@ int main() {
     memcpy_P(screen.buffer.canvas, ecafe_logo, sizeof(screen.buffer.canvas));
     screen.display(i2c_req_dispatcher)([](int) {});
 
+    player.reset();
+
+    general_scheduler.schedule(0, 1000, say_hello);
     while (true) {
         process_terminal();
         process_command();
@@ -226,7 +261,8 @@ int main() {
 
         bartender.handle();
         i2c_req_dispatcher.handle();
-        general_scheduler.handle();
+        general_scheduler.handle(milliseconds);
+        debug_player();
     }
 
     return 0;

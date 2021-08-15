@@ -10,7 +10,7 @@
 #include "hardware.hpp"
 
 #include <avr/pgmspace.h>
-#include <zoal/gfx/glyph_render.hpp>
+#include <zoal/gfx/glyph_renderer.hpp>
 
 class gui;
 class menu_item {
@@ -36,10 +36,10 @@ public:
 
 private:
     template<class G, class R>
-    static void render_progmem_text(zoal::gfx::glyph_render<G, R> &gr, const wchar_t *ptr) {
+    static void render_progmem_text(zoal::gfx::glyph_renderer<G, R> &gr, const wchar_t *ptr) {
         auto v = pgm_read_word(ptr++);
         while (v != 0) {
-            gr.draw((wchar_t)v, 1);
+            gr.draw((wchar_t)v);
             v = pgm_read_word(ptr++);
         }
     }

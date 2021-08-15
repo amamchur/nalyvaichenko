@@ -4,15 +4,11 @@
 
 #include "gui.hpp"
 
-#include "./command.hpp"
-#include "./fonts/roboto_regular_12.hpp"
-#include "./fonts/roboto_regular_16.hpp"
 #include "./fonts/roboto_regular_18.hpp"
-#include "./tty_terminal.hpp"
 
 #include <avr/pgmspace.h>
 #include <zoal/arch/avr/utils/progmem_reader.hpp>
-#include <zoal/gfx/glyph_render.hpp>
+#include <zoal/gfx/glyph_renderer.hpp>
 #include <zoal/gfx/renderer.hpp>
 
 menu_item::menu_item(const wchar_t *t)
@@ -47,9 +43,9 @@ static void next_segment_action(gui &) {
 menu_item item4(menu4_text, next_segment_action);
 
 static void logo_action(gui &gui) {
-
     send_command(command_type::request_render_frame);
 }
+
 menu_item item5(menu5_text);
 
 gui::gui(app_state &app_state)
@@ -72,7 +68,7 @@ gui::gui(app_state &app_state)
 void gui::render_calibration() {
     auto font = &roboto_regular_18;
     auto g = graphics::from_memory(screen.buffer.canvas);
-    zoal::gfx::glyph_render<graphics, zoal::utils::progmem_reader> gr(g, font);
+    zoal::gfx::glyph_renderer<graphics, zoal::utils::progmem_reader> gr(g, font);
 
     g->clear(0);
     gr.position(0, font->y_advance);
@@ -89,14 +85,13 @@ void gui::render_calibration() {
     constexpr int bar_height = 10;
     g->draw_rect(padding_left, 30, bar_width, bar_height, 1);
     g->fill_rect(padding_left, 30, static_cast<int>(bar_width * p), bar_height, 1);
-
-    send_command(command_type::request_next_render_frame);
+//    send_command(command_type::request_next_render_frame);
 }
 
 void gui::render_error() {
     auto font = &roboto_regular_18;
     auto g = graphics::from_memory(screen.buffer.canvas);
-    zoal::gfx::glyph_render<graphics, zoal::utils::progmem_reader> gr(g, font);
+    zoal::gfx::glyph_renderer<graphics, zoal::utils::progmem_reader> gr(g, font);
 
     g->clear(0);
     gr.position(0, font->y_advance);
@@ -106,13 +101,14 @@ void gui::render_error() {
 void gui::render_menu() const {
     auto font = &roboto_regular_18;
     auto g = graphics::from_memory(screen.buffer.canvas);
-    zoal::gfx::glyph_render<graphics, zoal::utils::progmem_reader> gr(g, font);
+    zoal::gfx::glyph_renderer<graphics, zoal::utils::progmem_reader> gr(g, font);
 
     g->clear(0);
 
     int origin_y = (64 + font->y_advance) / 2;
     int y = origin_y;
-    gr.position(0, y).draw(">", 1);
+    gr.color(1);
+    gr.position(0, y).draw(">");
     gr.position(12, y);
     render_progmem_text(gr, current_->text);
 
@@ -150,14 +146,11 @@ void gui::render() {
 }
 
 void gui::next_item() {
-    tty_stream << "1" << "\r\n";
     if (app_state_.flags != app_state_flags_idle) {
         return;
     }
 
-    tty_stream << "2" << "\r\n";
     if (current_->next != nullptr) {
-        tty_stream << "3" << "\r\n";
         current_ = current_->next;
         send_command(command_type::request_render_frame);
     }

@@ -21,7 +21,8 @@ enum class command_type {
     next_item,
     prev_item,
     exec_item,
-    clear_error
+    clear_error,
+    play
 };
 
 class command {

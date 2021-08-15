@@ -5,7 +5,7 @@
 #ifndef NALYVAICHENKO_TTY_TERMINAL_HPP
 #define NALYVAICHENKO_TTY_TERMINAL_HPP
 
-#include "./hardware.hpp"
+#include "./config.hpp"
 #include "./parsers/cmd_line_parser.hpp"
 #include "./terminal_input.hpp"
 

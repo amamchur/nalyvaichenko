@@ -5,9 +5,10 @@
 #ifndef NALYVAICHENKO_BARTENDER_MACHINE_HPP
 #define NALYVAICHENKO_BARTENDER_MACHINE_HPP
 
+#include "./app_state.hpp"
 #include "./command.hpp"
 #include "./segment_detector.hpp"
-#include "app_state.hpp"
+#include "./tty_terminal.hpp"
 
 #include <stdint.h>
 #include <zoal/gpio/pin_mode.hpp>
@@ -22,7 +23,7 @@ template<
     class IrSensorAdcChannel>
 class bartender_machine {
 public:
-    using scheduler_type = zoal::utils::method_scheduler<bartender_machine, Counter, 8, void>;
+    using scheduler_type = zoal::utils::lambda_scheduler<uint32_t, 8, 8>;
     using stepper_type = Stepper;
     using hall_channel = HallSensorAdcChannel;
     using ir_channel = IrSensorAdcChannel;
@@ -33,23 +34,22 @@ public:
     static constexpr uint32_t debug_delay_ms = 0;
     static constexpr uint32_t step_delay_ms = 1;
 
-    bartender_machine(app_state &state)
-        : scheduler_(this)
-        , app_state_(state) {}
+    explicit bartender_machine(app_state &state)
+        : app_state_(state) {}
 
     void handle() {
-        scheduler_.handle();
+        scheduler_.handle(Counter::now());
     }
 
     void make_drink() {
         int value = ir_channel::read();
-        drinks_left_--;
-        if (value < 700 && drinks_left_ >= 0) {
+        portions_left_--;
+        if (value < 700 && portions_left_ >= 0) {
             typename pump_signal::template mode<zoal::gpio::pin_mode::output>();
             typename pump_signal::high();
-            scheduler_.schedule(portion_delay_, &bartender_machine::make_next_if_needed);
+            scheduler_.schedule(0, portion_delay_, [this]() { make_next_if_needed(); });
         } else {
-            scheduler_.schedule(0, &bartender_machine::make_next_if_needed);
+            scheduler_.schedule(0, 0, [this]() { make_next_if_needed(); });
         }
     }
 
@@ -62,12 +62,12 @@ public:
         auto state = detector_.state;
         if (result && state == function_state::sector_a) {
             stepper_.stop();
-            scheduler_.schedule(0, &bartender_machine::make_drink);
+            scheduler_.schedule(0, 0, [this]() { make_drink(); });
             return;
         }
 
         if (stepper_.steps_left > 0) {
-            scheduler_.schedule(step_delay_ms, &bartender_machine::go_to_segment_a);
+            scheduler_.schedule(0, step_delay_ms, [this]() { go_to_segment_a(); });
         } else {
             stop_machine();
             stepper_.stop();
@@ -81,10 +81,14 @@ public:
 
         stepper_.step_now();
         if (stepper_.steps_left > 0) {
-            scheduler_.schedule(step_delay_ms, &bartender_machine::go_to_rotate_30_deg);
+            scheduler_.schedule(0, step_delay_ms, [this](){
+                go_to_rotate_30_deg();
+            });
         } else {
             stepper_.rotate(steps_per_revolution / total_segments_, rotation_direction);
-            scheduler_.schedule(debug_delay_ms, &bartender_machine::go_to_segment_a);
+            scheduler_.schedule(0, debug_delay_ms, [this](){
+                go_to_segment_a();
+            });
         }
     }
 
@@ -98,16 +102,16 @@ public:
 
         scheduler_.clear();
         stepper_.rotate(steps_per_revolution / 12, rotation_direction);
-        scheduler_.schedule(0, &bartender_machine::go_to_rotate_30_deg);
+        scheduler_.schedule(0, 0, [this]() { go_to_rotate_30_deg(); });
     }
 
     void make_next_if_needed() {
         typename pump_signal::low();
 
-        if (drinks_left_ > 0) {
+        if (portions_left_ > 0) {
             go_to_next_segment();
         } else {
-            drinks_left_ = 0;
+            portions_left_ = 0;
             stop_machine();
         }
     }
@@ -116,28 +120,31 @@ public:
         int value = hall_channel::read();
         bool result = detector_.handle(value);
         auto state = detector_.state;
+
         if (result && state == function_state::sector_a) {
             total_segments_++;
         }
 
         stepper_.step_now();
         if (stepper_.steps_left > 0) {
-            scheduler_.schedule(step_delay_ms, &bartender_machine::perform_calibration);
+            scheduler_.schedule(0, step_delay_ms, [this]() { perform_calibration(); });
         } else {
             stepper_.stop();
+            app_state_.flags = app_state_flags_idle;
+            send_command(command_type::request_render_frame);
         }
     }
 
     void calibrate_rotate_30_degrees() {
         stepper_.step_now();
         if (stepper_.steps_left > 0) {
-            scheduler_.schedule(step_delay_ms, &bartender_machine::calibrate_rotate_30_degrees);
+            scheduler_.schedule(0, step_delay_ms, [this]() { calibrate_rotate_30_degrees(); });
         } else {
             total_segments_ = 0;
 
             stepper_.stop();
             stepper_.rotate(steps_per_revolution, rotation_direction);
-            scheduler_.schedule(debug_delay_ms, &bartender_machine::perform_calibration);
+            scheduler_.schedule(0, debug_delay_ms, [this]() { perform_calibration(); });
         }
     }
 
@@ -151,12 +158,13 @@ public:
             total_segments_ = 0;
             stepper_.stop();
             stepper_.rotate(steps_per_revolution / 12, rotation_direction);
-            scheduler_.schedule(debug_delay_ms, &bartender_machine::calibrate_rotate_30_degrees);
+            scheduler_.schedule(0, debug_delay_ms, [this]() { calibrate_rotate_30_degrees(); });
+
             return;
         }
 
         if (stepper_.steps_left > 0) {
-            scheduler_.schedule(step_delay_ms, &bartender_machine::calibrate_to_segment_a);
+            scheduler_.schedule(0, step_delay_ms, [this]() { calibrate_to_segment_a(); });
         } else {
             stop_machine();
             app_state_.flags = app_state_flags_error;
@@ -176,7 +184,7 @@ public:
     void stop_machine() {
         typename pump_signal::low();
 
-        drinks_left_ = 0;
+        portions_left_ = 0;
         stepper_.stop();
         scheduler_.clear();
 
@@ -191,7 +199,7 @@ private:
 
     uint32_t portion_delay_{850};
     int total_segments_{6};
-    int drinks_left_{0};
+    int portions_left_{0};
 
     app_state &app_state_;
 };

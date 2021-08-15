@@ -1,6 +1,7 @@
 
 #include "hardware.hpp"
 #include "app_state.hpp"
+#include "df_player.hpp"
 
 stepper_type stepper;
 
@@ -14,10 +15,12 @@ oled_type screen;
 bartender_machine_type bartender(global_app_state);
 encoder_type encoder;
 encoder_button_type encoder_button;
+df_player player;;
 
 void initialize_hardware() {
     using namespace zoal::gpio;
-    using usart_cfg = zoal::periph::usart_115200<F_CPU>;
+    using tty_usart_cfg = zoal::periph::usart_115200<F_CPU>;
+    using df_player_usart_cfg = zoal::periph::usart_9600<F_CPU>;
     using adc_cfg = zoal::periph::adc_config<>;
     using i2c_cfg = zoal::periph::i2c_fast_mode<F_CPU>;
 
@@ -25,11 +28,14 @@ void initialize_hardware() {
     api::optimize<api::clock_on<tty_usart, i2c, timer>>();
 
     // Disable all modules before applying settings
-    api::optimize<api::disable<tty_usart, i2c, timer, adc>>();
+    api::optimize<api::disable<tty_usart, df_player_usart, i2c, timer, adc>>();
     api::optimize<
         //
         mcu::mux::usart<tty_usart, mcu::pe_00, mcu::pe_01>::connect,
-        mcu::cfg::usart<tty_usart, usart_cfg>::apply,
+        mcu::cfg::usart<tty_usart, tty_usart_cfg>::apply,
+        //
+        mcu::mux::usart<df_player_usart, mcu::pd_02, mcu::pd_03>::connect,
+        mcu::cfg::usart<df_player_usart, df_player_usart_cfg>::apply,
         //
         mcu::mux::adc<adc, pcb::ard_a00>::connect,
         mcu::cfg::adc<adc, adc_cfg>::apply,
@@ -55,13 +61,13 @@ void initialize_hardware() {
     zoal::utils::interrupts::on();
 
     // Enable all modules
-    api::optimize<api::enable<tty_usart, timer, adc, i2c>>();
+    api::optimize<api::enable<tty_usart, df_player_usart, timer, adc, i2c>>();
 
     adc::enable();
 }
 
 void initialize_i2c_devices() {
-    screen.init(i2c_req_dispatcher)([&](int) { });
+    screen.init(i2c_req_dispatcher)([](int) { });
     i2c_req_dispatcher.handle_until_finished();
 }
 
