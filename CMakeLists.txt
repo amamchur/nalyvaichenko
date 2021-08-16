@@ -39,21 +39,23 @@ ragel_generate_cpp(src/parsers/terminal_machine.rl TERMINAL_STATE_MACHINE_SRC)
 add_mcu_executable(
         nalyvaichenko
         atmega2560
+        src/app_state.cpp
+        src/config.cpp
+        src/df_player.cpp
+        src/fonts/roboto_regular_12.cpp
+        src/fonts/roboto_regular_16.cpp
+        src/fonts/roboto_regular_18.cpp
+        src/gui.cpp
+        src/hardware.cpp
+        src/logo/ascii_logo.cpp
+        src/logo/ecafe_logo.cpp
         src/main.cpp
-        src/ascii_logo.cpp
+        src/message.cpp
         src/segment_detector.cpp
         src/terminal_input.cpp
         src/tty_terminal.cpp
-        src/hardware.cpp
-        src/command.cpp
-        src/gui.cpp
-        src/app_state.cpp
-        src/ecafe_logo.cpp
-        src/df_player.cpp
-        src/fonts/roboto_regular_18.cpp
-        src/fonts/roboto_regular_16.cpp
-        src/fonts/roboto_regular_12.cpp
+        src/volatile_data.cpp
         ${TERMINAL_STATE_MACHINE_SRC}
         ${CMD_STATE_MACHINE_SRC}
-        )
+)
 target_compile_definitions(nalyvaichenko PRIVATE F_CPU=16000000UL)

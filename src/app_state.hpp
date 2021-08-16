@@ -1,6 +1,8 @@
 #ifndef NALYVAICHENKO_APP_STATE_HPP
 #define NALYVAICHENKO_APP_STATE_HPP
 
+#include "config.hpp"
+
 #include <stdint.h>
 #include <zoal/func/function.hpp>
 
@@ -12,9 +14,13 @@ typedef enum {
 
 class app_state {
 public:
-    volatile uint32_t flags{app_state_flags_idle};
-    zoal::func::function<32, float> progress_fn;
-    int total_segments;
+    settings_type settings;
+
+    int max_hall_value_;
+    int min_hall_value_;
+
+    void load_settings();
+    void save_settings();
 };
 
 extern app_state global_app_state;

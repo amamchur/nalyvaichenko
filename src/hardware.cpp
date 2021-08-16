@@ -1,21 +1,20 @@
 
 #include "hardware.hpp"
+
 #include "app_state.hpp"
 #include "df_player.hpp"
-
-stepper_type stepper;
-
-volatile uint32_t milliseconds = 0;
+#include "volatile_data.hpp"
 
 i2c_req_dispatcher_type i2c_req_dispatcher;
 zoal::periph::i2c_request &request = i2c_req_dispatcher.request;
 zoal::utils::i2c_scanner scanner;
 oled_type screen;
 
-bartender_machine_type bartender(global_app_state);
+bartender_machine_type bartender;
 encoder_type encoder;
 encoder_button_type encoder_button;
-df_player player;;
+df_player player;
+
 
 void initialize_hardware() {
     using namespace zoal::gpio;
@@ -55,7 +54,7 @@ void initialize_hardware() {
         encoder_pin_vcc::high,
         encoder_pin_gnd::low
         //
-    >();
+        >();
 
     // Enable system interrupts
     zoal::utils::interrupts::on();
@@ -67,7 +66,7 @@ void initialize_hardware() {
 }
 
 void initialize_i2c_devices() {
-    screen.init(i2c_req_dispatcher)([](int) { });
+    screen.init(i2c_req_dispatcher)([](int) {});
     i2c_req_dispatcher.handle_until_finished();
 }
 
@@ -75,10 +74,12 @@ void initialize_i2c_devices() {
 #pragma clang diagnostic ignored "-Wunknown-attributes"
 
 ISR(TIMER0_OVF_vect) {
+    hardware_events |= hardware_event_tick;
     milliseconds += overflow_to_tick::step();
 }
 
 ISR(TWI_vect) {
+    hardware_events |= hardware_event_i2c;
     i2c::handle_request_irq(request);
 }
 

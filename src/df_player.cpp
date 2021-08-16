@@ -5,6 +5,7 @@
 #include "./df_player.hpp"
 
 #include "./hardware.hpp"
+#include "./volatile_data.hpp"
 
 #include <avr/interrupt.h>
 
@@ -13,6 +14,7 @@ df_player_transport df_player_rx;
 df_player_tx_stream_type df_player_tx_stream(df_player_rx);
 
 ISR(USART1_RX_vect) {
+    hardware_events |= hardware_event_player_rx;
     df_player_usart::rx_handler<>([](uint8_t value) { df_player_rx_buffer.push_back(value); });
 }
 

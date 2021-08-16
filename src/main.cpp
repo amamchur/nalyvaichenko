@@ -1,23 +1,25 @@
-#include "./ascii_logo.hpp"
-#include "./command.hpp"
 #include "./df_player.hpp"
-#include "./ecafe_logo.hpp"
 #include "./gui.hpp"
+#include "./hardware.hpp"
+#include "./logo/ascii_logo.hpp"
 #include "./voice.hpp"
+#include "./volatile_data.hpp"
 
 #include <avr/io.h>
 #include <avr/pgmspace.h>
 #include <zoal/arch/avr/stream.hpp>
+#include <zoal/utils/scheduler.hpp>
 
-FUSES = {.low = 0xFF, .high = 0xDF, .extended = 0xFC};
+FUSES = {.low = 0xFF, .high = 0xD7, .extended = 0xFC};
 
-constexpr uint8_t fps = 20;
+constexpr uint8_t fps = 30;
 constexpr uint32_t display_fresh_delay = 1000 / fps;
+volatile bool pending_refresh_frame = false;
 
 using scheduler_type = zoal::utils::function_scheduler<uint32_t, 8, void *>;
 scheduler_type general_scheduler;
 
-gui user_interface{global_app_state};
+gui user_interface;
 
 void scan_i2c() {
     tty_stream << "Scanning I2C devices..."
@@ -38,6 +40,9 @@ void vt100_callback(const zoal::misc::terminal_input *, const char *s, const cha
     transport.send_data(s, e - s);
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-attributes"
+
 void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::command_line_event e) {
     static const char help_cmd[] PROGMEM = "help";
     static const char i2c_scan_cmd[] PROGMEM = "i2c-scan";
@@ -46,9 +51,9 @@ void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::comman
     static const char go_cmd[] PROGMEM = "go";
     static const char adc_cmd[] PROGMEM = "adc";
     static const char pump_cmd[] PROGMEM = "pump";
-    static const char next_item[] PROGMEM = "next-item";
-    static const char prev_item[] PROGMEM = "prev-item";
-    static const char exec_item[] PROGMEM = "exec-item";
+    static const char enc_cw[] PROGMEM = "enc-cc";
+    static const char enc_ccw[] PROGMEM = "enc-ccw";
+    static const char enc_press[] PROGMEM = "enc-press";
     static const char play1_cmd[] PROGMEM = "play1";
     static const char play2_cmd[] PROGMEM = "play2";
     static const char play3_cmd[] PROGMEM = "play3";
@@ -76,8 +81,7 @@ void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::comman
     }
 
     if (cmp_progmem_str_token(zoal::io::progmem_str_iter(next_cmd), ts, te)) {
-        bartender.stop_machine();
-        bartender.go_to_next_segment();
+        send_command(command_type::next_segment);
     }
 
     if (cmp_progmem_str_token(zoal::io::progmem_str_iter(go_cmd), ts, te)) {
@@ -92,36 +96,41 @@ void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::comman
         send_command(command_type::show_adc);
     }
 
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(next_item), ts, te)) {
-        send_command(command_type::next_item);
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(enc_cw), ts, te)) {
+        send_event(event_type::encoder_cw);
     }
 
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(prev_item), ts, te)) {
-        send_command(command_type::prev_item);
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(enc_ccw), ts, te)) {
+        send_event(event_type::encoder_ccw);
     }
 
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(exec_item), ts, te)) {
-        send_command(command_type::exec_item);
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(enc_press), ts, te)) {
+        send_event(event_type::encoder_press);
     }
 
     if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play1_cmd), ts, te)) {
-        command cmd(command_type::play);
+        command cmd{};
+        cmd.type = command_type::play;
         cmd.value = 1;
         send_command(cmd);
     }
 
     if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play2_cmd), ts, te)) {
-        command cmd(command_type::play);
+        command cmd{};
+        cmd.type = command_type::play;
         cmd.value = 2;
         send_command(cmd);
     }
 
     if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play3_cmd), ts, te)) {
-        command cmd(command_type::play);
+        command cmd{};
+        cmd.type = command_type::play;
         cmd.value = 3;
         send_command(cmd);
     }
 }
+
+#pragma clang diagnostic pop
 
 void input_callback(const zoal::misc::terminal_input *, const char *s, const char *e) {
     command_line_parser cmd_parser(nullptr, 0);
@@ -130,16 +139,14 @@ void input_callback(const zoal::misc::terminal_input *, const char *s, const cha
     terminal.sync();
 }
 
-void send_render_cmd(void *) {
-    send_command(command_type::request_render_frame);
+void render_frame(void *ptr = nullptr) {
+    pending_refresh_frame = false;
+    i2c_req_dispatcher.handle_until_finished();
+    user_interface.render();
+    screen.display(i2c_req_dispatcher)([](int) {});
 }
 
-void process_command() {
-    command cmd;
-    if (!pop_command(cmd)) {
-        return;
-    }
-
+void process_command(command &cmd) {
     auto type = cmd.type;
 
     switch (type) {
@@ -158,11 +165,14 @@ void process_command() {
     case command_type::calibrate:
         player.play(voice::calibration);
         bartender.calibrate();
-        send_command(command_type::request_render_frame);
+        send_event(event_type::calibration_started);
+        send_command(command_type::render_screen);
+        break;
+    case command_type::stop:
+        bartender.stop_machine();
         break;
     case command_type::go:
-        bartender.portions_left_ = bartender.total_segments_;
-        bartender.go_to_next_segment();
+        bartender.start();
         break;
     case command_type::scan_i2c:
         scan_i2c();
@@ -174,63 +184,84 @@ void process_command() {
         pump_signal::_0();
         break;
     case command_type::next_segment:
-        bartender.go_to_next_segment();
+        bartender.next_segment();
         break;
-    case command_type::request_render_frame:
-        i2c_req_dispatcher.handle_until_finished();
-        user_interface.render();
-        screen.display(i2c_req_dispatcher)([](int) {});
+    case command_type::render_screen:
+        render_frame();
         break;
-    case command_type::request_next_render_frame:
-        general_scheduler.schedule(0, display_fresh_delay, send_render_cmd);
+    case command_type::request_render_screen:
+        if (!pending_refresh_frame) {
+            pending_refresh_frame = true;
+            general_scheduler.schedule(0, display_fresh_delay, render_frame);
+        }
         break;
-    case command_type::next_item:
-        user_interface.next_item();
-        break;
-    case command_type::prev_item:
-        user_interface.prev_item();
-        break;
-    case command_type::exec_item:
-        user_interface.exec_item();
-        break;
-    case command_type::clear_error:
-        global_app_state.flags = app_state_flags_idle;
-        send_command(command_type::request_render_frame);
+    case command_type::request_render_screen_500ms:
+        general_scheduler.schedule(0, 500, render_frame);
         break;
     case command_type::play:
         player.play(cmd.value);
         break;
     case command_type::logo:
-        memcpy_P(screen.buffer.canvas, ecafe_logo, sizeof(screen.buffer.canvas));
-        screen.display(i2c_req_dispatcher)([](int) {});
+        user_interface.current_screen(&user_interface.logo_screen_);
         break;
     default:
         break;
     }
-};
+}
+
+void process_event(event &e) {
+    switch (e.type) {
+    case event_type::calibration_finished:
+        user_interface.current_screen(&user_interface.calibration_screen_);
+        break;
+    default:
+        break;
+    }
+    user_interface.process_event(e);
+    bartender.process_event(e);
+}
+
+void process_message() {
+    message msg{};
+    while (pop_message(msg)) {
+        switch (msg.type) {
+        case message_type::event:
+            process_event(msg.e);
+            break;
+        case message_type::command:
+            process_command(msg.c);
+            break;
+        }
+    }
+}
 
 void process_terminal_rx() {
-    uint8_t rx_byte = 0;
-    bool result;
-    {
-        zoal::utils::interrupts_off scope_off;
-        result = tty_rx_buffer.pop_front(rx_byte);
-    }
-
-    if (result) {
+    while (true) {
+        uint8_t rx_byte;
+        bool result;
+        {
+            zoal::utils::interrupts_off scope_off;
+            result = tty_rx_buffer.pop_front(rx_byte);
+        }
+        if (!result) {
+            return;
+        }
         terminal.push(&rx_byte, 1);
     }
 }
 
 void process_player_rx() {
-    uint8_t rx_byte = 0;
-    bool result;
-    {
-        zoal::utils::interrupts_off scope_off;
-        result = df_player_rx_buffer.pop_front(rx_byte);
-    }
+    while (true) {
+        uint8_t rx_byte;
+        bool result;
+        {
+            zoal::utils::interrupts_off scope_off;
+            result = df_player_rx_buffer.pop_front(rx_byte);
+        }
+        if (!result) {
+            return;
+        }
 
-    if (result) {
         player.push_byte(rx_byte);
     }
 }
@@ -238,15 +269,15 @@ void process_player_rx() {
 void process_encoder() {
     encoder.handle([](zoal::io::rotary_event e) {
         if (e == zoal::io::rotary_event::direction_1) {
-            send_command(command_type::prev_item);
+            send_event(event_type::encoder_ccw);
         } else {
-            send_command(command_type::next_item);
+            send_event(event_type::encoder_cw);
         }
     });
 
     encoder_button.handle(milliseconds, [](zoal::io::button_event event) {
         if (event == zoal::io::button_event::press) {
-            send_command(command_type::exec_item);
+            send_event(event_type::encoder_press);
         }
     });
 }
@@ -265,24 +296,46 @@ int main() {
     tty_stream << zoal::io::progmem_str(ascii_logo) << zoal::io::progmem_str(help_msg);
     terminal.sync();
 
-    player.callback_.assign([](uint8_t cmd, uint16_t param) {
+    player.callback_ = [](uint8_t cmd, uint16_t param) {
         if (cmd == df_player::cmd_init_params && param == 2) {
             player.callback_.reset();
             player.play(voice::hello);
         }
-    });
+    };
     player.reset();
 
-    send_command(command_type::logo);
-    while (true) {
-        process_terminal_rx();
-        process_command();
-        process_encoder();
+    global_app_state.load_settings();
 
-        bartender.handle();
-        i2c_req_dispatcher.handle();
-        general_scheduler.handle(milliseconds);
-        process_player_rx();
+    send_command(command_type::render_screen);
+
+    int events;
+    while (true) {
+        {
+            zoal::utils::interrupts_off off;
+            events = hardware_events;
+            hardware_events = 0;
+        }
+
+        if (events) {
+            if (events & hardware_event_player_rx) {
+                process_player_rx();
+            }
+            if (events & hardware_event_tty_rx) {
+                process_terminal_rx();
+            }
+            if (events & hardware_event_i2c) {
+                i2c_req_dispatcher.handle();
+            }
+            if (events & hardware_event_tick) {
+                bartender.handle(milliseconds);
+                general_scheduler.handle(milliseconds);
+            }
+            if (events & hardware_event_msg) {
+                process_message();
+            }
+        }
+
+        process_encoder();
     }
 
     return 0;

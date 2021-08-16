@@ -43,7 +43,7 @@ using hall_channel = zoal::periph::adc_channel<mcu, adc, hall_sensor>;
 using ir_channel = zoal::periph::adc_channel<mcu, adc, ir_sensor>;
 
 using stepper_type = zoal::io::stepper_28byj<pcb::ard_d31, pcb::ard_d29, pcb::ard_d27, pcb::ard_d25, 8>;
-using bartender_machine_type = bartender_machine<counter, stepper_type, pump_signal, hall_channel, ir_channel>;
+using bartender_machine_type = bartender_machine<counter::value_type, stepper_type, pump_signal, hall_channel, ir_channel>;
 extern bartender_machine_type bartender;
 
 using encoder_button_type = zoal::io::button<uint32_t, encoder_pin_btn>;

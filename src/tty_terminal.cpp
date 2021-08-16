@@ -2,9 +2,10 @@
 // Created by andrii on 03.07.21.
 //
 
-#include "tty_terminal.hpp"
+#include "./tty_terminal.hpp"
 
-#include "ascii_logo.hpp"
+#include "./logo/ascii_logo.hpp"
+#include "./volatile_data.hpp"
 
 const char terminal_greeting[] = "\033[0;32mmcu\033[m$ ";
 
@@ -25,6 +26,7 @@ const char help_msg[] PROGMEM = "Commands: \r\n"
                                 "\tpump\t\tpump\r\n";
 
 ISR(USART0_RX_vect) {
+    hardware_events |= hardware_event_tty_rx;
     tty_usart::rx_handler<>([](uint8_t value) { tty_rx_buffer.push_back(value); });
 }
 

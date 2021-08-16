@@ -1,7 +1,3 @@
-//
-// Created by andrii on 06.04.21.
-//
-
 #include "segment_detector.hpp"
 
 #include <stdlib.h>
