@@ -6,27 +6,20 @@
 #define NALYVAICHENKO_HARDWARE_HPP
 
 #include "./config.hpp"
+#include "./volatile_data.hpp"
 #include "bartender_machine.hpp"
 #include "df_player.hpp"
 
 #include <zoal/board/arduino_mega.hpp>
 #include <zoal/gfx/renderer.hpp>
-#include <zoal/ic/ssd1306.hpp>
 #include <zoal/ic/sh1106.hpp>
+#include <zoal/ic/ssd1306.hpp>
 #include <zoal/io/button.hpp>
 #include <zoal/io/rotary_encoder.hpp>
 #include <zoal/io/stepper_28byj.hpp>
 #include <zoal/periph/i2c.hpp>
 #include <zoal/periph/i2c_request_dispatcher.hpp>
 #include <zoal/utils/i2c_scanner.hpp>
-#include <zoal/utils/ms_counter.hpp>
-#include <zoal/utils/tool_set.hpp>
-
-extern volatile uint32_t milliseconds;
-using counter = zoal::utils::ms_counter<decltype(milliseconds), &milliseconds>;
-using tools = zoal::utils::tool_set<mcu, F_CPU, counter, void>;
-using delay = tools::delay;
-using overflow_to_tick = zoal::utils::timer_overflow_to_tick<F_CPU, 32, 256>;
 
 using i2c_req_dispatcher_type = zoal::periph::i2c_request_dispatcher<i2c, sizeof(void *) * 4>;
 extern i2c_req_dispatcher_type i2c_req_dispatcher;

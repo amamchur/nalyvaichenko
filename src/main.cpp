@@ -57,6 +57,8 @@ void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::comman
     static const char play1_cmd[] PROGMEM = "play1";
     static const char play2_cmd[] PROGMEM = "play2";
     static const char play3_cmd[] PROGMEM = "play3";
+    static const char play4_cmd[] PROGMEM = "play4";
+    static const char play5_cmd[] PROGMEM = "play5";
 
     if (e == zoal::misc::command_line_event::line_end) {
         return;
@@ -126,6 +128,20 @@ void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::comman
         command cmd{};
         cmd.type = command_type::play;
         cmd.value = 3;
+        send_command(cmd);
+    }
+
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play4_cmd), ts, te)) {
+        command cmd{};
+        cmd.type = command_type::play;
+        cmd.value = 4;
+        send_command(cmd);
+    }
+
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play5_cmd), ts, te)) {
+        command cmd{};
+        cmd.type = command_type::play;
+        cmd.value = 5;
         send_command(cmd);
     }
 }

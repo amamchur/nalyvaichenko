@@ -1,7 +1,3 @@
-//
-// Created by andrii on 03.07.21.
-//
-
 #ifndef NALYVAICHENKO_BARTENDER_MACHINE_HPP
 #define NALYVAICHENKO_BARTENDER_MACHINE_HPP
 
@@ -9,6 +5,7 @@
 #include "./message.hpp"
 #include "./segment_detector.hpp"
 #include "./tty_terminal.hpp"
+#include "./voice.hpp"
 
 #include <stdint.h>
 #include <zoal/gpio/pin_mode.hpp>
@@ -37,6 +34,7 @@ public:
     void process_event(event &e) override {
         switch (e.type) {
         case event_type::settings_changed:
+            portion_time_ = global_app_state.settings.portion_time_;
             portion_delay_ = global_app_state.settings.portion_delay_;
             total_segments_ = global_app_state.settings.total_segments_;
             ir_max_value_ = global_app_state.settings.ir_max_value_;
@@ -49,8 +47,8 @@ public:
         }
     }
 
-    void handle(TicksType milliseconds) {
-        scheduler_.handle(milliseconds);
+    void handle(TicksType ms) {
+        scheduler_.handle(ms);
     }
 
     void calibrate() {
@@ -76,6 +74,7 @@ public:
         stop_machine();
 
         portions_left_ = total_segments_;
+        portions_made_ = 0;
         go_to_next_segment();
     }
 
@@ -120,7 +119,20 @@ private:
         }
     }
 
+    void stop_pump_and_go_to_next() {
+        typename pump_signal::low();
+        portions_made_++;
+        command cmd{};
+        cmd.type = command_type::play;
+        cmd.value = voice::cheers + portions_made_;
+        send_command(cmd);
+        scheduler_.schedule(0, portion_delay_, [this]() { make_next_if_needed(); });
+    }
+
     void make_portion() {
+        stepper_.stop();
+        delay::ms(10);
+
         int value = ir_channel::read();
         portions_left_--;
 
@@ -128,7 +140,7 @@ private:
         if (match && portions_left_ >= 0) {
             typename pump_signal::template mode<zoal::gpio::pin_mode::output>();
             typename pump_signal::high();
-            scheduler_.schedule(0, portion_delay_, [this]() { make_next_if_needed(); });
+            scheduler_.schedule(0, portion_time_, [this]() { stop_pump_and_go_to_next(); });
         } else {
             scheduler_.schedule(0, 0, [this]() { make_next_if_needed(); });
         }
@@ -182,6 +194,12 @@ private:
 
     void make_next_if_needed() {
         typename pump_signal::low();
+        if (portions_left_ == 0) {
+            command cmd{};
+            cmd.type = command_type::play;
+            cmd.value = voice::cheers;
+            send_command(cmd);
+        }
 
         if (portions_left_ > 0) {
             go_to_next_segment();
@@ -212,6 +230,11 @@ private:
             stepper_.step_now();
             scheduler_.schedule(0, step_delay_ms, [this]() { perform_calibration(); });
         } else {
+            command cmd{};
+            cmd.type = command_type::play;
+            cmd.value = voice::calibration_finished;
+            send_command(cmd);
+
             stepper_.stop();
             global_app_state.max_hall_value_ = max_hall_value_;
             global_app_state.min_hall_value_ = min_hall_value_;
@@ -225,10 +248,12 @@ private:
     scheduler_type scheduler_;
     segment_detector detector_;
 
-    uint32_t portion_delay_{850};
+    uint32_t portion_time_{850};
+    uint32_t portion_delay_{50};
     int portions_left_{0};
+    int portions_made_{0};
     int total_segments_{6};
-    int ir_min_value_{5};
+    int ir_min_value_{0};
     int ir_max_value_{300};
     int min_hall_value_{0};
     int max_hall_value_{0};

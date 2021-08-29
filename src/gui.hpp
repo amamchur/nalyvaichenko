@@ -89,12 +89,21 @@ public:
     settings_screen();
 private:
     static void back(gui &g, abstract_screen &);
+    static void portion_settings(gui &g, abstract_screen &);
     static void ir_settings(gui &g, abstract_screen &);
     static void sector_settings(gui &g, abstract_screen &);
 
     menu_item menu_item_back;
+    menu_item menu_item_portion;
     menu_item menu_item_ir;
     menu_item menu_item_sector;
+};
+
+class portion_screen : public abstract_screen {
+public:
+    void process_event(event &e, gui &g) override;
+    void render(gui &g) override;
+    int menu_item_index{0};
 };
 
 class ir_settings_screen : public abstract_screen {
@@ -142,6 +151,7 @@ public:
     settings_screen settings_screen_;
     ir_settings_screen ir_settings_screen_;
     sector_settings_screen sector_settings_screen_;
+    portion_screen portion_screen_;
 
     logo_screen logo_screen_;
     calibration_screen calibration_screen_;

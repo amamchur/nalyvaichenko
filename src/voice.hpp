@@ -9,6 +9,8 @@ class voice {
 public:
     static constexpr int hello = 1;
     static constexpr int calibration = 2;
+    static constexpr int calibration_finished = 3;
+    static constexpr int cheers = 5;
 };
 
 #endif //NALYVAICHENKO_VOICE_HPP
