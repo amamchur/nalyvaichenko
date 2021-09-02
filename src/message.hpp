@@ -45,7 +45,8 @@ enum class command_type {
     request_render_screen,
     request_render_screen_500ms,
     play,
-    logo
+    logo,
+    valve
 };
 
 class command {

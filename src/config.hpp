@@ -28,6 +28,7 @@ using encoder_pin_gnd = pcb::ard_d46;
 using hall_sensor = pcb::ard_a05;
 using ir_sensor = pcb::ard_a04;
 using pump_signal = pcb::ard_d48;
+using valve_signal = pcb::ard_d49;
 
 using counter = zoal::utils::ms_counter<decltype(milliseconds), &milliseconds>;
 using tools = zoal::utils::tool_set<mcu, F_CPU, counter, void>;

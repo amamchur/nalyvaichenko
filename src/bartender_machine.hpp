@@ -63,6 +63,7 @@ public:
 
     void stop_machine() {
         typename pump_signal::low();
+        typename valve_signal::low();
 
         portions_left_ = 0;
         stepper_.stop();
@@ -121,6 +122,8 @@ private:
 
     void stop_pump_and_go_to_next() {
         typename pump_signal::low();
+        typename valve_signal::low();
+
         portions_made_++;
         command cmd{};
         cmd.type = command_type::play;
@@ -140,6 +143,8 @@ private:
         if (match && portions_left_ >= 0) {
             typename pump_signal::template mode<zoal::gpio::pin_mode::output>();
             typename pump_signal::high();
+            typename valve_signal::template mode<zoal::gpio::pin_mode::output>();
+            typename valve_signal::high();
             scheduler_.schedule(0, portion_time_, [this]() { stop_pump_and_go_to_next(); });
         } else {
             scheduler_.schedule(0, 0, [this]() { make_next_if_needed(); });
@@ -148,6 +153,7 @@ private:
 
     void go_to_segment_a() {
         typename pump_signal::low();
+        typename valve_signal::low();
 
         int value = hall_channel::read();
         bool result = detector_.handle(value);
@@ -169,6 +175,7 @@ private:
 
     void rotate_30_deg() {
         typename pump_signal::low();
+        typename valve_signal::low();
 
         if (stepper_.steps_left > 0) {
             stepper_.step_now();
@@ -181,6 +188,7 @@ private:
 
     void go_to_next_segment() {
         typename pump_signal::low();
+        typename valve_signal::low();
 
         if (total_segments_ == 0) {
             stop_machine();
@@ -194,6 +202,8 @@ private:
 
     void make_next_if_needed() {
         typename pump_signal::low();
+        typename valve_signal::low();
+
         if (portions_left_ == 0) {
             command cmd{};
             cmd.type = command_type::play;

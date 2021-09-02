@@ -51,6 +51,7 @@ void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::comman
     static const char go_cmd[] PROGMEM = "go";
     static const char adc_cmd[] PROGMEM = "adc";
     static const char pump_cmd[] PROGMEM = "pump";
+    static const char valve_cmd[] PROGMEM = "valve";
     static const char enc_cw[] PROGMEM = "enc-cc";
     static const char enc_ccw[] PROGMEM = "enc-ccw";
     static const char enc_press[] PROGMEM = "enc-press";
@@ -92,6 +93,10 @@ void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::comman
 
     if (cmp_progmem_str_token(zoal::io::progmem_str_iter(pump_cmd), ts, te)) {
         send_command(command_type::pump);
+    }
+
+    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(valve_cmd), ts, te)) {
+        send_command(command_type::valve);
     }
 
     if (cmp_progmem_str_token(zoal::io::progmem_str_iter(adc_cmd), ts, te)) {
@@ -195,9 +200,18 @@ void process_command(command &cmd) {
         break;
     case command_type::pump:
         pump_signal::mode<zoal::gpio::pin_mode::output>();
+        valve_signal::mode<zoal::gpio::pin_mode::output>();
         pump_signal::_1();
+        valve_signal::_1();
         delay::ms(500);
         pump_signal::_0();
+        valve_signal::_0();
+        break;
+    case command_type::valve:
+        valve_signal::mode<zoal::gpio::pin_mode::output>();
+        valve_signal::_1();
+        delay::ms(1000);
+        valve_signal::_0();
         break;
     case command_type::next_segment:
         bartender.next_segment();
