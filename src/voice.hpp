@@ -11,6 +11,7 @@ public:
     static constexpr int calibration = 2;
     static constexpr int calibration_finished = 3;
     static constexpr int cheers = 5;
+    static constexpr int segs_found = 13;
 };
 
 #endif //NALYVAICHENKO_VOICE_HPP

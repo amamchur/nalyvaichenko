@@ -50,13 +50,15 @@ constexpr int menu_item_value_offset = 80;
 
 static const wchar_t text_segments[] PROGMEM = L"Сегментів";
 static const wchar_t text_pump_time[] PROGMEM = L"Час";
+static const wchar_t text_steps[] PROGMEM = L"Кроків";
 static const wchar_t text_max[] PROGMEM = L"Макс.";
 static const wchar_t text_min[] PROGMEM = L"Мін.";
 static const wchar_t text_pause[] PROGMEM = L"Пауза";
 static const wchar_t text_sector[] PROGMEM = L"Сектор";
-static const wchar_t text_sector_a[] PROGMEM = L"Сектор А";
-static const wchar_t text_sector_b[] PROGMEM = L"Сектор Б";
+static const wchar_t text_sector_a[] PROGMEM = L"Поріг R";
+static const wchar_t text_sector_b[] PROGMEM = L"Поріг F";
 static const wchar_t text_ir_sensor[] PROGMEM = L"ІЧС";
+static const wchar_t text_adjustment[] PROGMEM = L"Корекція";
 static const wchar_t text_hall[] PROGMEM = L"Холл";
 static const wchar_t text_back[] PROGMEM = L"Назад";
 static const wchar_t text_portion[] PROGMEM = L"Порція";
@@ -64,7 +66,7 @@ static const wchar_t text_calibration[] PROGMEM = L"Калібування...";
 static const wchar_t text_error[] PROGMEM = L"Ой шось не так";
 static const wchar_t suffix_ms[] PROGMEM = L"ms";
 
-static const wchar_t main_menu0_text[] PROGMEM = L"Стор!";
+static const wchar_t main_menu0_text[] PROGMEM = L"Стоп!";
 static const wchar_t main_menu1_text[] PROGMEM = L"Запуск";
 static const wchar_t main_menu2_text[] PROGMEM = L"Калібування";
 static const wchar_t main_menu3_text[] PROGMEM = L"Налаштув.";
@@ -196,6 +198,8 @@ void main_screen::stop_action(gui &, abstract_screen &parent) {
 }
 
 void ir_settings_screen::process_event(event &e, gui &gui) {
+    auto segments = global_app_state.settings.segments_;
+    auto &rs = global_app_state.settings.revolver_settings_[segments];
     switch (e.type) {
     case event_type::encoder_cw:
         menu_item_index++;
@@ -210,13 +214,13 @@ void ir_settings_screen::process_event(event &e, gui &gui) {
             gui.current_screen(&gui.settings_screen_);
             break;
         case 1:
-            gui.input_int_screen_.value = global_app_state.settings.ir_max_value_;
+            gui.input_int_screen_.value = rs.ir_max_value_;
             gui.input_int_screen_.min = 0;
             gui.input_int_screen_.max = 1023;
             gui.input_int_screen_.title_progmem = text_max;
             gui.input_int_screen_.suffix_progmem = nullptr;
-            gui.input_int_screen_.callback = [&gui, current](int v) {
-                global_app_state.settings.ir_max_value_ = v;
+            gui.input_int_screen_.callback = [&gui, &rs, current](int v) {
+                rs.ir_max_value_ = v;
                 global_app_state.save_settings();
 
                 gui.current_screen(current);
@@ -224,13 +228,13 @@ void ir_settings_screen::process_event(event &e, gui &gui) {
             gui.current_screen(&gui.input_int_screen_);
             break;
         case 2:
-            gui.input_int_screen_.value = global_app_state.settings.ir_min_value_;
+            gui.input_int_screen_.value = rs.ir_min_value_;
             gui.input_int_screen_.min = 0;
             gui.input_int_screen_.max = 1023;
             gui.input_int_screen_.title_progmem = text_max;
             gui.input_int_screen_.suffix_progmem = nullptr;
-            gui.input_int_screen_.callback = [&gui, current](int v) {
-                global_app_state.settings.ir_min_value_ = v;
+            gui.input_int_screen_.callback = [&gui, &rs, current](int v) {
+                rs.ir_min_value_ = v;
                 global_app_state.save_settings();
 
                 gui.current_screen(current);
@@ -251,6 +255,8 @@ void ir_settings_screen::process_event(event &e, gui &gui) {
 }
 
 void ir_settings_screen::render(gui &g) {
+    auto segments = global_app_state.settings.segments_;
+    auto &rs = global_app_state.settings.revolver_settings_[segments];
     auto font = get_font();
     auto gfx = graphics::from_memory(screen.buffer.canvas);
     glyph_renderer gr(gfx, font);
@@ -267,7 +273,7 @@ void ir_settings_screen::render(gui &g) {
     gr.position(menu_item_title_offset, font->y_advance * 2);
     gr.draw_progmem(text_max);
     gr.position(menu_item_value_offset, font->y_advance * 2);
-    grs << global_app_state.settings.ir_max_value_;
+    grs << rs.ir_max_value_;
     if (menu_item_index == 1) {
         gr.position(0, font->y_advance * 2).draw(">");
     }
@@ -275,7 +281,7 @@ void ir_settings_screen::render(gui &g) {
     gr.position(menu_item_title_offset, font->y_advance * 3);
     gr.draw_progmem(text_min);
     gr.position(menu_item_value_offset, font->y_advance * 3);
-    grs << global_app_state.settings.ir_min_value_;
+    grs << rs.ir_min_value_;
     if (menu_item_index == 2) {
         gr.position(0, font->y_advance * 3).draw(">");
     }
@@ -340,7 +346,7 @@ void calibration_screen::render(gui &g) {
     gfx->clear(0);
     gfx->draw_circle(x, y, r, 1);
 
-    auto count = global_app_state.settings.total_segments_;
+    auto count = global_app_state.settings.segments_;
     auto rad = (2 * M_PI) / count;
     for (int i = 0; i < count; i++) {
         auto angle = rad * i;
@@ -392,7 +398,11 @@ void settings_screen::back(gui &g, abstract_screen &) {
 }
 
 void settings_screen::ir_settings(gui &g, abstract_screen &) {
-    g.current_screen(&g.ir_settings_screen_);
+    g.current_screen(&g.adjustment_settings_screen_);
+}
+
+void settings_screen::adjustment_settings(gui &g, abstract_screen &) {
+    g.current_screen(&g.adjustment_settings_screen_);
 }
 
 void settings_screen::sector_settings(gui &g, abstract_screen &) {
@@ -407,10 +417,12 @@ settings_screen::settings_screen()
     : menu_item_back(text_back, back)
     , menu_item_portion(text_portion, portion_settings)
     , menu_item_ir(text_ir_sensor, ir_settings)
+    , menu_item_adjust(text_adjustment, adjustment_settings)
     , menu_item_sector(text_sector, sector_settings) {
     menu_item_back.next = &menu_item_portion;
     menu_item_portion.next = &menu_item_ir;
-    menu_item_ir.next = &menu_item_sector;
+    menu_item_ir.next = &menu_item_adjust;
+    menu_item_adjust.next = &menu_item_sector;
     create_back_trace(&menu_item_back);
 
     current_ = &menu_item_back;
@@ -471,13 +483,13 @@ void sector_settings_screen::process_event(event &e, gui &gui) {
             gui.current_screen(&gui.settings_screen_);
             break;
         case 1:
-            gui.input_int_screen_.value = global_app_state.settings.sector_a_hall_value;
+            gui.input_int_screen_.value = global_app_state.settings.hall_rising_threshold;
             gui.input_int_screen_.min = 0;
             gui.input_int_screen_.max = 1023;
             gui.input_int_screen_.title_progmem = text_sector_a;
             gui.input_int_screen_.suffix_progmem = nullptr;
             gui.input_int_screen_.callback = [&gui, current](int v) {
-                global_app_state.settings.sector_a_hall_value = v;
+                global_app_state.settings.hall_rising_threshold = v;
                 global_app_state.save_settings();
 
                 gui.current_screen(current);
@@ -485,13 +497,13 @@ void sector_settings_screen::process_event(event &e, gui &gui) {
             gui.current_screen(&gui.input_int_screen_);
             break;
         case 2:
-            gui.input_int_screen_.value = global_app_state.settings.sector_b_hall_value;
+            gui.input_int_screen_.value = global_app_state.settings.hall_falling_threshold;
             gui.input_int_screen_.min = 0;
             gui.input_int_screen_.max = 1023;
             gui.input_int_screen_.title_progmem = text_sector_b;
             gui.input_int_screen_.suffix_progmem = nullptr;
             gui.input_int_screen_.callback = [&gui, current](int v) {
-                global_app_state.settings.sector_b_hall_value = v;
+                global_app_state.settings.hall_falling_threshold = v;
                 global_app_state.save_settings();
 
                 gui.current_screen(current);
@@ -528,7 +540,7 @@ void sector_settings_screen::render(gui &g) {
     gr.position(menu_item_title_offset, font->y_advance * 2);
     gr.draw_progmem(text_sector_a);
     gr.position(menu_item_value_offset, font->y_advance * 2);
-    grs << global_app_state.settings.sector_a_hall_value;
+    grs << global_app_state.settings.hall_rising_threshold;
     if (menu_item_index == 1) {
         gr.position(0, font->y_advance * 2).draw(">");
     }
@@ -536,13 +548,15 @@ void sector_settings_screen::render(gui &g) {
     gr.position(menu_item_title_offset, font->y_advance * 3);
     gr.draw_progmem(text_sector_b);
     gr.position(menu_item_value_offset, font->y_advance * 3);
-    grs << global_app_state.settings.sector_b_hall_value;
+    grs << global_app_state.settings.hall_falling_threshold;
     if (menu_item_index == 2) {
         gr.position(0, font->y_advance * 3).draw(">");
     }
 }
 
 void portion_screen::process_event(event &e, gui &gui) {
+    auto segments = global_app_state.settings.segments_;
+    auto &rs = global_app_state.settings.revolver_settings_[segments];
     switch (e.type) {
     case event_type::encoder_cw:
         menu_item_index++;
@@ -557,13 +571,13 @@ void portion_screen::process_event(event &e, gui &gui) {
             gui.current_screen(&gui.settings_screen_);
             break;
         case 1:
-            gui.input_int_screen_.value = global_app_state.settings.portion_time_;
+            gui.input_int_screen_.value = rs.portion_time_;
             gui.input_int_screen_.min = 100;
             gui.input_int_screen_.max = 2000;
             gui.input_int_screen_.title_progmem = text_pump_time;
             gui.input_int_screen_.suffix_progmem = suffix_ms;
-            gui.input_int_screen_.callback = [&gui, current](int v) {
-                global_app_state.settings.portion_time_ = v;
+            gui.input_int_screen_.callback = [&gui, &rs, current](int v) {
+                rs.portion_time_ = v;
                 global_app_state.save_settings();
 
                 gui.current_screen(current);
@@ -571,13 +585,13 @@ void portion_screen::process_event(event &e, gui &gui) {
             gui.current_screen(&gui.input_int_screen_);
             break;
         case 2:
-            gui.input_int_screen_.value = global_app_state.settings.portion_delay_;
+            gui.input_int_screen_.value = rs.portion_delay_;
             gui.input_int_screen_.min = 0;
             gui.input_int_screen_.max = 500;
             gui.input_int_screen_.title_progmem = text_pause;
             gui.input_int_screen_.suffix_progmem = suffix_ms;
-            gui.input_int_screen_.callback = [&gui, current](int v) {
-                global_app_state.settings.portion_delay_ = v;
+            gui.input_int_screen_.callback = [&gui, &rs, current](int v) {
+                rs.portion_delay_ = v;
                 global_app_state.save_settings();
 
                 gui.current_screen(current);
@@ -598,6 +612,8 @@ void portion_screen::process_event(event &e, gui &gui) {
 }
 
 void portion_screen::render(gui &g) {
+    auto segments = global_app_state.settings.segments_;
+    auto &rs = global_app_state.settings.revolver_settings_[segments];
     auto font = get_font();
     auto gfx = graphics::from_memory(screen.buffer.canvas);
     glyph_renderer gr(gfx, font);
@@ -614,7 +630,7 @@ void portion_screen::render(gui &g) {
     gr.position(menu_item_title_offset, font->y_advance * 2);
     gr.draw_progmem(text_pump_time);
     gr.position(menu_item_value_offset, font->y_advance * 2);
-    grs << global_app_state.settings.portion_time_;
+    grs << rs.portion_time_;
     gr.draw_progmem(suffix_ms);
     if (menu_item_index == 1) {
         gr.position(0, font->y_advance * 2).draw(">");
@@ -623,9 +639,77 @@ void portion_screen::render(gui &g) {
     gr.position(menu_item_title_offset, font->y_advance * 3);
     gr.draw_progmem(text_pause);
     gr.position(menu_item_value_offset, font->y_advance * 3);
-    grs << global_app_state.settings.portion_delay_;
+    grs << rs.portion_delay_;
     gr.draw_progmem(suffix_ms);
     if (menu_item_index == 2) {
         gr.position(0, font->y_advance * 3).draw(">");
+    }
+}
+
+void adjustment_settings_screen::process_event(event &e, gui &gui) {
+    auto segments = global_app_state.settings.segments_;
+    auto &rs = global_app_state.settings.revolver_settings_[segments];
+    switch (e.type) {
+    case event_type::encoder_cw:
+        menu_item_index++;
+        break;
+    case event_type::encoder_ccw:
+        menu_item_index--;
+        break;
+    case event_type::encoder_press: {
+        auto current = gui.current_screen();
+        switch (menu_item_index) {
+        case 0:
+            gui.current_screen(&gui.settings_screen_);
+            break;
+        case 1:
+            gui.input_int_screen_.value = rs.sector_adjustment_;
+            gui.input_int_screen_.min = -50;
+            gui.input_int_screen_.max = 50;
+            gui.input_int_screen_.title_progmem = text_adjustment;
+            gui.input_int_screen_.suffix_progmem = nullptr;
+            gui.input_int_screen_.callback = [&gui, &rs, current](int v) {
+                rs.sector_adjustment_ = v;
+                global_app_state.save_settings();
+
+                gui.current_screen(current);
+            };
+            gui.current_screen(&gui.input_int_screen_);
+            break;
+        default:
+            break;
+        }
+        break;
+    }
+    default:
+        break;
+    }
+
+    menu_item_index = ensure_range(menu_item_index, 0, 1);
+    send_command(command_type::request_render_screen);
+}
+
+void adjustment_settings_screen::render(gui &g) {
+    auto segments = global_app_state.settings.segments_;
+    auto &rs = global_app_state.settings.revolver_settings_[segments];
+    auto font = get_font();
+    auto gfx = graphics::from_memory(screen.buffer.canvas);
+    glyph_renderer gr(gfx, font);
+    gr_stream grs(gr);
+
+    gfx->clear(0);
+    gr.color(1);
+    gr.position(menu_item_title_offset, font->y_advance);
+    gr.draw_progmem(text_back);
+    if (menu_item_index == 0) {
+        gr.position(0, font->y_advance * 1).draw(">");
+    }
+
+    gr.position(menu_item_title_offset, font->y_advance * 2);
+    gr.draw_progmem(text_steps);
+    gr.position(menu_item_value_offset, font->y_advance * 2);
+    grs << rs.sector_adjustment_;
+    if (menu_item_index == 1) {
+        gr.position(0, font->y_advance * 2).draw(">");
     }
 }

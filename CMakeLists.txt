@@ -51,7 +51,7 @@ add_mcu_executable(
         src/logo/ecafe_logo.cpp
         src/main.cpp
         src/message.cpp
-        src/segment_detector.cpp
+        src/sector_detector.cpp
         src/terminal_input.cpp
         src/tty_terminal.cpp
         src/volatile_data.cpp

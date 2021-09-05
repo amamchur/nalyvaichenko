@@ -35,14 +35,19 @@ using tools = zoal::utils::tool_set<mcu, F_CPU, counter, void>;
 using delay = tools::delay;
 using overflow_to_tick = zoal::utils::timer_overflow_to_tick<F_CPU, 32, 256>;
 
-struct settings_type {
-    int total_segments_;
+struct revolver_settings {
     int portion_time_;
     int portion_delay_;
-    int sector_a_hall_value;
-    int sector_b_hall_value;
     int ir_max_value_;
     int ir_min_value_;
+    int sector_adjustment_;
+};
+
+struct settings_type {
+    int segments_;
+    int hall_rising_threshold;
+    int hall_falling_threshold;
+    revolver_settings revolver_settings_[7];
 };
 
 void load_settings(settings_type &settings);

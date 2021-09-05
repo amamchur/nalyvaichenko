@@ -1,9 +1,6 @@
 #include "./df_player.hpp"
 #include "./gui.hpp"
-#include "./hardware.hpp"
 #include "./logo/ascii_logo.hpp"
-#include "./voice.hpp"
-#include "./volatile_data.hpp"
 
 #include <avr/io.h>
 #include <avr/pgmspace.h>
@@ -146,7 +143,7 @@ void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::comman
     if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play5_cmd), ts, te)) {
         command cmd{};
         cmd.type = command_type::play;
-        cmd.value = 5;
+        cmd.value = voice::segs_found;
         send_command(cmd);
     }
 }
@@ -184,7 +181,7 @@ void process_command(command &cmd) {
         break;
     }
     case command_type::calibrate:
-        player.play(voice::calibration);
+        player.enqueue_track(voice::calibration);
         bartender.calibrate();
         send_event(event_type::calibration_started);
         send_command(command_type::render_screen);
@@ -199,8 +196,6 @@ void process_command(command &cmd) {
         scan_i2c();
         break;
     case command_type::pump:
-        pump_signal::mode<zoal::gpio::pin_mode::output>();
-        valve_signal::mode<zoal::gpio::pin_mode::output>();
         pump_signal::_1();
         valve_signal::_1();
         delay::ms(500);
@@ -208,7 +203,6 @@ void process_command(command &cmd) {
         valve_signal::_0();
         break;
     case command_type::valve:
-        valve_signal::mode<zoal::gpio::pin_mode::output>();
         valve_signal::_1();
         delay::ms(1000);
         valve_signal::_0();
@@ -229,7 +223,7 @@ void process_command(command &cmd) {
         general_scheduler.schedule(0, 500, render_frame);
         break;
     case command_type::play:
-        player.play(cmd.value);
+        player.enqueue_track(cmd.value);
         break;
     case command_type::logo:
         user_interface.current_screen(&user_interface.logo_screen_);
@@ -315,6 +309,7 @@ void process_encoder() {
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
 
+
 int main() {
     initialize_hardware();
     initialize_i2c_devices();
@@ -326,19 +321,11 @@ int main() {
     tty_stream << zoal::io::progmem_str(ascii_logo) << zoal::io::progmem_str(help_msg);
     terminal.sync();
 
-    player.callback_ = [](uint8_t cmd, uint16_t param) {
-        if (cmd == df_player::cmd_init_params && param == 2) {
-            player.callback_.reset();
-            player.play(voice::hello);
-        }
-    };
-    player.reset();
-
     global_app_state.load_settings();
 
     send_command(command_type::render_screen);
 
-    int events;
+    uint8_t events;
     while (true) {
         {
             zoal::utils::interrupts_off off;

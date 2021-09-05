@@ -43,10 +43,10 @@ void df_player::uint16ToArray(uint16_t value, uint8_t *array) {
     *(array + 1) = (uint8_t)(value);
 }
 
-uint16_t df_player::arrayToUint16(const uint8_t *array){
+uint16_t df_player::arrayToUint16(const uint8_t *array) {
     uint16_t value = *array;
-    value <<=8;
-    value += *(array+1);
+    value <<= 8;
+    value += *(array + 1);
     return value;
 }
 
@@ -62,6 +62,7 @@ void df_player::reset() {
 }
 
 void df_player::play(int fileNumber) {
+    playing_ = true;
     send_command(0x03, fileNumber);
 }
 
@@ -74,23 +75,28 @@ void df_player::push_byte(uint8_t byte) {
 }
 
 void df_player::process_response() {
-//    using hex = zoal::io::hexadecimal_functor<uint8_t>;
     auto cs1 = calculate_check_sum(response_);
     auto cs2 = arrayToUint16(response_ + msg_checksum);
 
-//    tty_stream << "\033[2K\r";
-
     if (cs1 != cs2) {
         waiting_ack_ = false;
-        tty_stream << "Bad checksum!!!" << "\r\n";
+        tty_stream << "Bad checksum!!!"
+                   << "\r\n";
         return;
     }
 
     auto params = arrayToUint16(response_ + msg_parameter);
     auto cmd = response_[msg_command];
     switch (cmd) {
+    case 0x03:
+        playing_ = true;
+        break;
     case 0x41:
         waiting_ack_ = false;
+        break;
+    case 0x3D:
+        playing_ = false;
+        play_next_track();
         break;
     default:
         if (callback_) {
@@ -99,13 +105,34 @@ void df_player::process_response() {
         break;
     }
 
+//    using hex = zoal::io::hexadecimal_functor<uint8_t>;
+//    tty_stream << "\033[2K\r";
 //    for (unsigned char i : request_) {
 //        tty_stream << hex(i) << " ";
 //    }
-//    tty_stream <<"\r\n";
+//    tty_stream << "\r\n";
 //
 //    for (unsigned char i : response_) {
 //        tty_stream << hex(i) << " ";
 //    }
-//    tty_stream <<"\r\n";
+//    tty_stream << "\r\n";
+}
+
+void df_player::play_next_track() {
+    if (waiting_ack_ || playing_) {
+        return;
+    }
+
+    df_player_track track;
+    if (!queue_.pop_front(track)) {
+        return;
+    }
+    play(track.file);
+}
+
+void df_player::enqueue_track(int fileNumber) {
+    df_player_track track;
+    track.file = fileNumber;
+    queue_.push_back(track);
+    play_next_track();
 }
