@@ -51,8 +51,8 @@ void initialize_hardware() {
         api::mode<zoal::gpio::pin_mode::input, encoder_pin_a, encoder_pin_b>,
         api::mode<zoal::gpio::pin_mode::input_pull_up, encoder_pin_btn>,
         api::mode<zoal::gpio::pin_mode::output, encoder_pin_vcc, encoder_pin_gnd, pump_signal, valve_signal>,
-        encoder_pin_vcc::high,
-        encoder_pin_gnd::low
+        api::low<pump_signal, valve_signal, encoder_pin_gnd>,
+        api::high<encoder_pin_vcc>
         //
         >();
 

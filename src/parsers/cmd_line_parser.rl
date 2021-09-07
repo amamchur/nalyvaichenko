@@ -29,7 +29,7 @@ namespace {
 
 namespace zoal { namespace misc {
     command_line_parser::command_line_parser(void *buffer, size_t buffer_size)
-        : ragel_scanner(buffer, buffer_size) {}
+        : ragel_parser(buffer, buffer_size) {}
 
     void command_line_machine::quoted_param_found_action() {
         ts++;

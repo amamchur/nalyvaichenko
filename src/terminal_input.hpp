@@ -4,7 +4,7 @@
 #include "parsers/terminal_machine.hpp"
 
 namespace zoal { namespace misc {
-    class terminal_input : public zoal::parse::ragel_scanner<terminal_machine> {
+    class terminal_input : public zoal::parse::ragel_parser<terminal_machine> {
     public:
         using self_type = terminal_input;
 

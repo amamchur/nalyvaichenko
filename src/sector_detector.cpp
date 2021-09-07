@@ -9,8 +9,8 @@ detection_result sector_detector::handle(int value) {
     if (abs(d) < noise_filter) {
         return detection_result::skipped;
     }
-    int pv = prev_value;
-    edge_state pes = edge_state_;
+//    int pv = prev_value;
+//    edge_state pes = edge_state_;
 
     prev_value = value;
 

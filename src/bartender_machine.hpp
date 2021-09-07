@@ -286,7 +286,7 @@ private:
     int ir_max_value_{300};
     int min_hall_value_{0};
     int max_hall_value_{0};
-    int hall_values_per_segment_[6];
+    int hall_values_per_segment_[6]{0};
     int sector_adjustment_{-10};
 };
 

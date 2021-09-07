@@ -1,7 +1,7 @@
 #ifndef ZOAL_TERMINAL_MACHINE_HPP
 #define ZOAL_TERMINAL_MACHINE_HPP
 
-#include <zoal/parse/ragel_scanner.hpp>
+#include <zoal/parse/ragel_parser.hpp>
 
 namespace zoal { namespace misc {
     enum class terminal_machine_event {
@@ -21,7 +21,7 @@ namespace zoal { namespace misc {
         carriage_return
     };
 
-    class terminal_machine : public zoal::parse::scanner_machine<void *, terminal_machine_event> {
+    class terminal_machine : public zoal::parse::ragel_scanner<void *, terminal_machine_event> {
     public:
         void init_machine();
 
@@ -30,6 +30,6 @@ namespace zoal { namespace misc {
         const char *run_machine(const char *p, const char *pe);
     };
 
-    class terminal_parser : public zoal::parse::ragel_scanner<terminal_machine> {};
+    class terminal_parser : public zoal::parse::ragel_parser<terminal_machine> {};
 }}
 #endif

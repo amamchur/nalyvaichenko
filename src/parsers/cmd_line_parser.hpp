@@ -3,12 +3,12 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <zoal/parse/ragel_scanner.hpp>
+#include <zoal/parse/ragel_parser.hpp>
 
 namespace zoal { namespace misc {
     enum class command_line_event { token, line_end };
 
-    class command_line_machine : public zoal::parse::scanner_machine<command_line_machine *, command_line_event> {
+    class command_line_machine : public zoal::parse::ragel_scanner<command_line_machine *, command_line_event> {
     public:
         void init_machine();
         int start_state() const;
@@ -17,7 +17,7 @@ namespace zoal { namespace misc {
         const char *run_machine(const char *p, const char *pe);
     };
 
-    class command_line_parser : public zoal::parse::ragel_scanner<command_line_machine> {
+    class command_line_parser : public zoal::parse::ragel_parser<command_line_machine> {
     public:
         command_line_parser(void *buffer, size_t buffer_size);
     };
