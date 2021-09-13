@@ -3,38 +3,33 @@
 %%{
     machine fsm_name;
 
+    esc = 27;
     main := |*
-        27 79 65 => {
-            handler_(this, terminal_machine_event::ctrl_up_key);
-        };
-        27 79 66 => {
-            handler_(this, terminal_machine_event::ctrl_down_key);
-        };
-        27 79 67 => {
+        esc 79 67 => {
             handler_(this, terminal_machine_event::ctrl_right_key);
         };
-        27 79 68 => {
+        esc 79 68 => {
             handler_(this, terminal_machine_event::ctrl_left_key);
         };
-        27 91 65 => {
+        esc 91 65 => {
             handler_(this, terminal_machine_event::up_key);
         };
-        27 91 66 => {
+        esc 91 66 => {
             handler_(this, terminal_machine_event::down_key);
         };
-        27 91 67 => {
+        esc 91 67 => {
             handler_(this, terminal_machine_event::right_key);
         };
-        27 91 68 => {
+        esc 91 68 => {
             handler_(this, terminal_machine_event::left_key);
         };
-        27 91 49 126 => {
+        esc 91 49 126 => {
             handler_(this, terminal_machine_event::home_key);
         };
-        27 91 51 126 => {
+        esc 91 51 126 => {
             handler_(this, terminal_machine_event::delete_key);
         };
-        27 91 52 126 => {
+        esc 91 52 126 => {
             handler_(this, terminal_machine_event::end_key);
         };
         127 => {
@@ -46,9 +41,9 @@
         (ascii - cntrl)=> {
             handler_(this, terminal_machine_event::ascii);
         };
-        27 91 any;
-        27 79 any;
-        27 91 any;
+        esc 91 any;
+        esc 79 any;
+        esc 91 any;
         any;
     *|;
 }%%

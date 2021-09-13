@@ -33,6 +33,14 @@ void send_command(command_type type) {
     send_message(msg);
 }
 
+void send_command(command_type type, int value) {
+    message msg{};
+    msg.type = message_type::command;
+    msg.c.type = type;
+    msg.c.value = value;
+    send_message(msg);
+}
+
 void send_command(const command &cmd) {
     message msg{};
     msg.type = message_type::command;

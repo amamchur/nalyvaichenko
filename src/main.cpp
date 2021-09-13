@@ -1,11 +1,12 @@
 #include "./df_player.hpp"
 #include "./gui.hpp"
 #include "./logo/ascii_logo.hpp"
+#include "./parsers/command_machine.hpp"
 
 #include <avr/io.h>
-#include <avr/pgmspace.h>
 #include <zoal/arch/avr/stream.hpp>
 #include <zoal/utils/scheduler.hpp>
+#include <zoal/utils/new.hpp>
 
 FUSES = {.low = 0xFF, .high = 0xD7, .extended = 0xFC};
 
@@ -37,123 +38,24 @@ void vt100_callback(const zoal::misc::terminal_input *, const char *s, const cha
     transport.send_data(s, e - s);
 }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunknown-attributes"
-
-void cmd_select_callback(zoal::misc::command_line_machine *p, zoal::misc::command_line_event e) {
-    static const char help_cmd[] PROGMEM = "help";
-    static const char i2c_scan_cmd[] PROGMEM = "i2c-scan";
-    static const char calibrate_cmd[] PROGMEM = "calibrate";
-    static const char next_cmd[] PROGMEM = "next";
-    static const char go_cmd[] PROGMEM = "go";
-    static const char adc_cmd[] PROGMEM = "adc";
-    static const char pump_cmd[] PROGMEM = "pump";
-    static const char valve_cmd[] PROGMEM = "valve";
-    static const char enc_cw[] PROGMEM = "enc-cc";
-    static const char enc_ccw[] PROGMEM = "enc-ccw";
-    static const char enc_press[] PROGMEM = "enc-press";
-    static const char play1_cmd[] PROGMEM = "play1";
-    static const char play2_cmd[] PROGMEM = "play2";
-    static const char play3_cmd[] PROGMEM = "play3";
-    static const char play4_cmd[] PROGMEM = "play4";
-    static const char play5_cmd[] PROGMEM = "play5";
-
-    if (e == zoal::misc::command_line_event::line_end) {
-        return;
-    }
-
-    auto ts = p->token_start();
-    auto te = p->token_end();
-    p->callback(&command_line_parser::empty_callback);
-
-    tty_stream << "\r\n";
-
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(help_cmd), ts, te)) {
-        send_command(command_type::show_help);
-    }
-
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(i2c_scan_cmd), ts, te)) {
-        send_command(command_type::scan_i2c);
-    }
-
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(calibrate_cmd), ts, te)) {
-        send_command(command_type::calibrate);
-    }
-
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(next_cmd), ts, te)) {
-        send_command(command_type::next_segment);
-    }
-
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(go_cmd), ts, te)) {
-        send_command(command_type::go);
-    }
-
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(pump_cmd), ts, te)) {
-        send_command(command_type::pump);
-    }
-
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(valve_cmd), ts, te)) {
-        send_command(command_type::valve);
-    }
-
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(adc_cmd), ts, te)) {
-        send_command(command_type::show_adc);
-    }
-
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(enc_cw), ts, te)) {
-        send_event(event_type::encoder_cw);
-    }
-
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(enc_ccw), ts, te)) {
-        send_event(event_type::encoder_ccw);
-    }
-
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(enc_press), ts, te)) {
-        send_event(event_type::encoder_press);
-    }
-
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play1_cmd), ts, te)) {
-        command cmd{};
-        cmd.type = command_type::play;
-        cmd.value = 1;
+void command_callback(zoal::misc::command_machine *, command_type cmd, int argc, zoal::misc::cmd_arg *argv) {
+    switch (argc) {
+    case 0:
         send_command(cmd);
-    }
-
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play2_cmd), ts, te)) {
-        command cmd{};
-        cmd.type = command_type::play;
-        cmd.value = 2;
-        send_command(cmd);
-    }
-
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play3_cmd), ts, te)) {
-        command cmd{};
-        cmd.type = command_type::play;
-        cmd.value = 3;
-        send_command(cmd);
-    }
-
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play4_cmd), ts, te)) {
-        command cmd{};
-        cmd.type = command_type::play;
-        cmd.value = 4;
-        send_command(cmd);
-    }
-
-    if (cmp_progmem_str_token(zoal::io::progmem_str_iter(play5_cmd), ts, te)) {
-        command cmd{};
-        cmd.type = command_type::play;
-        cmd.value = voice::segs_found;
-        send_command(cmd);
+        break;
+    case 1:
+        send_command(cmd, (int)*argv);
+        break;
+    default:
+        break;
     }
 }
 
-#pragma clang diagnostic pop
-
 void input_callback(const zoal::misc::terminal_input *, const char *s, const char *e) {
-    command_line_parser cmd_parser(nullptr, 0);
-    cmd_parser.callback(cmd_select_callback);
-    cmd_parser.scan(s, e, e);
+    tty_stream << "\r\n";
+    zoal::misc::command_machine cm;
+    cm.callback(command_callback);
+    cm.run_machine(s, e, e);
     terminal.sync();
 }
 
@@ -196,16 +98,10 @@ void process_command(command &cmd) {
         scan_i2c();
         break;
     case command_type::pump:
-        pump_signal::_1();
-        valve_signal::_1();
-        delay::ms(500);
-        pump_signal::_0();
-        valve_signal::_0();
+        bartender.pump(cmd.value);
         break;
     case command_type::valve:
-        valve_signal::_1();
-        delay::ms(1000);
-        valve_signal::_0();
+        bartender.valve(cmd.value);
         break;
     case command_type::next_segment:
         bartender.next_segment();
@@ -228,6 +124,9 @@ void process_command(command &cmd) {
     case command_type::logo:
         user_interface.current_screen(&user_interface.logo_screen_);
         break;
+    case command_type::rotate:
+        bartender.rotate(cmd.value);
+        break;
     default:
         break;
     }
@@ -239,10 +138,10 @@ void process_event(event &e) {
         user_interface.current_screen(&user_interface.calibration_screen_);
         break;
     default:
+        user_interface.process_event(e);
+        bartender.process_event(e);
         break;
     }
-    user_interface.process_event(e);
-    bartender.process_event(e);
 }
 
 void process_message() {
@@ -270,7 +169,7 @@ void process_terminal_rx() {
         if (!result) {
             return;
         }
-        terminal.push(&rx_byte, 1);
+        terminal.push_and_scan(&rx_byte, 1);
     }
 }
 
@@ -308,7 +207,6 @@ void process_encoder() {
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
-
 
 int main() {
     initialize_hardware();

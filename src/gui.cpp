@@ -1,7 +1,3 @@
-//
-// Created by andrii on 03.07.21.
-//
-
 #include "gui.hpp"
 
 #include "./fonts/roboto_regular_12.hpp"
@@ -182,7 +178,7 @@ void main_screen::logo_action(gui &gui, abstract_screen &) {
 }
 
 void main_screen::pump(gui &, abstract_screen &) {
-    send_command(command_type::pump);
+    send_command(command_type::pump, 500);
 }
 
 void main_screen::sensors(gui &g, abstract_screen &) {
@@ -573,7 +569,7 @@ void portion_screen::process_event(event &e, gui &gui) {
         case 1:
             gui.input_int_screen_.value = rs.portion_time_;
             gui.input_int_screen_.min = 100;
-            gui.input_int_screen_.max = 2000;
+            gui.input_int_screen_.max = 3000;
             gui.input_int_screen_.title_progmem = text_pump_time;
             gui.input_int_screen_.suffix_progmem = suffix_ms;
             gui.input_int_screen_.callback = [&gui, &rs, current](int v) {

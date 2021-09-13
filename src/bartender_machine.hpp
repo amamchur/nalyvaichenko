@@ -20,7 +20,7 @@ template<
     class IrSensorAdcChannel>
 class bartender_machine : public event_handler {
 public:
-    using scheduler_type = zoal::utils::lambda_scheduler<uint32_t, 8, 8>;
+    using scheduler_type = zoal::utils::lambda_scheduler<uint32_t, 8, 32>;
     using stepper_type = Stepper;
     using hall_channel = HallSensorAdcChannel;
     using ir_channel = IrSensorAdcChannel;
@@ -55,6 +55,8 @@ public:
     }
 
     void calibrate() {
+        stop_machine();
+
         memset(hall_values_per_segment_, 0, sizeof(hall_values_per_segment_));
 
         min_hall_value_ = INT16_MAX;
@@ -89,6 +91,31 @@ public:
         go_to_next_segment();
     }
 
+    void pump(uint32_t delay_ticks) {
+        using namespace zoal::gpio;
+        stop_machine();
+        api::optimize<typename pump_signal::_1, typename valve_signal::_1>();
+        scheduler_.schedule(0, delay_ticks, [this]() {
+            api::optimize<typename pump_signal::_0, typename valve_signal::_0>();
+        });
+    }
+
+    void valve(uint32_t delay_ticks) {
+        using namespace zoal::gpio;
+        stop_machine();
+        typename valve_signal::_1();
+        scheduler_.schedule(0, delay_ticks, [this]() {
+            api::optimize<typename pump_signal::_0, typename valve_signal::_0>();
+        });
+    }
+
+    void rotate(int steps) {
+        stop_machine();
+
+        int dir = steps > 0 ? forward_direction : 1 - forward_direction;
+        stepper_.rotate(abs(steps), dir);
+        scheduler_.schedule(0, step_delay_ms, [this]() { perform_adjust_segment(); });
+    }
 private:
     void calibrate_rotate_30_degrees() {
         if (stepper_.steps_left > 0) {
@@ -120,8 +147,8 @@ private:
     }
 
     void stop_pump_and_go_to_next() {
-        typename pump_signal::low();
-        typename valve_signal::low();
+        using namespace zoal::gpio;
+        api::optimize<typename pump_signal::_0, typename valve_signal::_0>();
 
         portions_made_++;
         command cmd{};
@@ -152,6 +179,7 @@ private:
 
         bool match = value > ir_min_value_ && value < ir_max_value_;
         if (match && portions_left_ >= 0) {
+            stepper_.stop();
             typename pump_signal::high();
             typename valve_signal::high();
             scheduler_.schedule(0, portion_time_, [this]() { stop_pump_and_go_to_next(); });
@@ -208,8 +236,8 @@ private:
     }
 
     void make_next_if_needed() {
-        typename pump_signal::low();
-        typename valve_signal::low();
+        using namespace zoal::gpio;
+        api::optimize<typename pump_signal::_0, typename valve_signal::_0>();
 
         if (portions_left_ == 0) {
             command cmd{};
@@ -263,13 +291,6 @@ private:
             cmd.type = command_type::play;
             cmd.value = voice::segs_found + total_segments_;
             send_command(cmd);
-            //
-            //            tty_stream << "total_segments_: " << total_segments_ << "\r\b";
-            //
-            //            for (int i = 0; i < total_segments_; i++) {
-            //                tty_stream << hall_values_per_segment_[i] << " ";
-            //            }
-            //            tty_stream << "\r\n";
         }
     }
 

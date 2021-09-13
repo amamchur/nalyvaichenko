@@ -1,11 +1,6 @@
-//
-// Created by andrii on 03.07.21.
-//
-
 #include "./tty_terminal.hpp"
 
 #include "./logo/ascii_logo.hpp"
-#include "./volatile_data.hpp"
 
 const char terminal_greeting[] = "\033[0;32mmcu\033[m$ ";
 
@@ -18,12 +13,16 @@ static char terminal_buffer[tty_terminal_str_size];
 zoal::misc::terminal_input terminal(terminal_buffer, sizeof(terminal_buffer));
 
 const char help_msg[] PROGMEM = "Commands: \r\n"
-                                "\ti2c-scan\tscan i2c devises\r\n"
+                                "\thelp\t\tdisplay help\r\n"
+                                "\ti2c\t\tscan i2c devices\r\n"
                                 "\tcalibrate\tcalibrate revolver\r\n"
                                 "\tnext\t\tnext segment\r\n"
-                                "\tgo\t\tgo\r\n"
+                                "\tgo\t\trun machines\r\n"
                                 "\tadc\t\tadc\r\n"
-                                "\tpump\t\tpump\r\n";
+                                "\tvalve [ms]\tvalve\r\n"
+                                "\tstop\t\tstop machine\r\n"
+                                "\tpump [ms]\tpump\r\n"
+                                "\tplay [track]\tplay track\r\n";
 
 ISR(USART0_RX_vect) {
     hardware_events |= hardware_event_tty_rx;

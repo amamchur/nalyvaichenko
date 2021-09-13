@@ -10,8 +10,6 @@ enum class event_type {
     //
     encoder_cw,
     encoder_ccw,
-    encoder_down,
-    encoder_up,
     encoder_press,
     //
     machine_stop,
@@ -46,7 +44,9 @@ enum class command_type {
     request_render_screen_500ms,
     play,
     logo,
-    valve
+    valve,
+    enc,
+    rotate
 };
 
 class command {
@@ -74,6 +74,7 @@ void send_message(message &msg);
 void send_event(event_type type);
 void send_event(const event &cmd);
 void send_command(command_type type);
+void send_command(command_type type, int value);
 void send_command(const command &cmd);
 bool pop_message(message &msg);
 

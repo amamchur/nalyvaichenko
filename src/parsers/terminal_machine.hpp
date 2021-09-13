@@ -5,8 +5,6 @@
 
 namespace zoal { namespace misc {
     enum class terminal_machine_event {
-        ctrl_up_key,
-        ctrl_down_key,
         ctrl_right_key,
         ctrl_left_key,
         up_key,
