@@ -16,6 +16,8 @@ template<
     class TicksType,
     class Stepper,
     class PumpSignal,
+    class PumpPwmChannel,
+    class ValveSignal,
     class HallSensorAdcChannel,
     class IrSensorAdcChannel>
 class bartender_machine : public event_handler {
@@ -25,6 +27,8 @@ public:
     using hall_channel = HallSensorAdcChannel;
     using ir_channel = IrSensorAdcChannel;
     using pump_signal = PumpSignal;
+    using pump_pwm_channel = PumpPwmChannel;
+    using valve_signal = ValveSignal;
 
     static constexpr uint32_t steps_per_revolution = 4096u;
     static constexpr uint8_t forward_direction = 1;
@@ -33,9 +37,11 @@ public:
 
     void process_event(event &e) override {
         auto segments = global_app_state.settings.segments_;
+        auto power = global_app_state.settings.pump_power_;
         auto rs = global_app_state.settings.revolver_settings_[segments];
         switch (e.type) {
         case event_type::settings_changed:
+            pump_pwm_channel::set(255 * power / 100);
             total_segments_ = segments;
             portion_time_ = rs.portion_time_;
             portion_delay_ = rs.portion_delay_;
@@ -69,8 +75,7 @@ public:
     }
 
     void stop_machine() {
-        typename pump_signal::low();
-        typename valve_signal::low();
+        stop_liquid_stream();
 
         portions_left_ = 0;
         stepper_.stop();
@@ -94,19 +99,15 @@ public:
     void pump(uint32_t delay_ticks) {
         using namespace zoal::gpio;
         stop_machine();
-        api::optimize<typename pump_signal::_1, typename valve_signal::_1>();
-        scheduler_.schedule(0, delay_ticks, [this]() {
-            api::optimize<typename pump_signal::_0, typename valve_signal::_0>();
-        });
+        start_liquid_stream();
+        scheduler_.schedule(0, delay_ticks, [this]() { stop_liquid_stream(); });
     }
 
     void valve(uint32_t delay_ticks) {
         using namespace zoal::gpio;
         stop_machine();
         typename valve_signal::_1();
-        scheduler_.schedule(0, delay_ticks, [this]() {
-            api::optimize<typename pump_signal::_0, typename valve_signal::_0>();
-        });
+        scheduler_.schedule(0, delay_ticks, [this]() { api::optimize<typename valve_signal::_0>(); });
     }
 
     void rotate(int steps) {
@@ -116,7 +117,24 @@ public:
         stepper_.rotate(abs(steps), dir);
         scheduler_.schedule(0, step_delay_ms, [this]() { perform_adjust_segment(); });
     }
+
 private:
+    void start_liquid_stream() {
+        zoal::gpio::api::optimize<
+            //
+            typename pump_pwm_channel::connect,
+            typename pump_signal::_1,
+            typename valve_signal::_1>();
+    }
+
+    void stop_liquid_stream() {
+        zoal::gpio::api::optimize<
+            //
+            typename pump_pwm_channel::disconnect,
+            typename pump_signal::_0,
+            typename valve_signal::_0>();
+    }
+
     void calibrate_rotate_30_degrees() {
         if (stepper_.steps_left > 0) {
             stepper_.step_now();
@@ -147,8 +165,7 @@ private:
     }
 
     void stop_pump_and_go_to_next() {
-        using namespace zoal::gpio;
-        api::optimize<typename pump_signal::_0, typename valve_signal::_0>();
+        stop_liquid_stream();
 
         portions_made_++;
         command cmd{};
@@ -180,8 +197,7 @@ private:
         bool match = value > ir_min_value_ && value < ir_max_value_;
         if (match && portions_left_ >= 0) {
             stepper_.stop();
-            typename pump_signal::high();
-            typename valve_signal::high();
+            start_liquid_stream();
             scheduler_.schedule(0, portion_time_, [this]() { stop_pump_and_go_to_next(); });
         } else {
             scheduler_.schedule(0, 0, [this]() { make_next_if_needed(); });
@@ -189,8 +205,7 @@ private:
     }
 
     void go_to_segment_a() {
-        typename pump_signal::low();
-        typename valve_signal::low();
+        stop_liquid_stream();
 
         int value = hall_channel::read();
         auto result = detector_.handle(value);
@@ -209,8 +224,7 @@ private:
     }
 
     void rotate_30_deg() {
-        typename pump_signal::low();
-        typename valve_signal::low();
+        stop_liquid_stream();
 
         if (stepper_.steps_left > 0) {
             stepper_.step_now();
@@ -222,8 +236,7 @@ private:
     }
 
     void go_to_next_segment() {
-        typename pump_signal::low();
-        typename valve_signal::low();
+        stop_liquid_stream();
 
         if (total_segments_ == 0) {
             stop_machine();
@@ -236,8 +249,7 @@ private:
     }
 
     void make_next_if_needed() {
-        using namespace zoal::gpio;
-        api::optimize<typename pump_signal::_0, typename valve_signal::_0>();
+        stop_liquid_stream();
 
         if (portions_left_ == 0) {
             command cmd{};

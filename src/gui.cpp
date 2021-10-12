@@ -44,7 +44,6 @@ static void create_back_trace(menu_item *item) {
 constexpr int menu_item_title_offset = 10;
 constexpr int menu_item_value_offset = 80;
 
-static const wchar_t text_segments[] PROGMEM = L"Сегментів";
 static const wchar_t text_pump_time[] PROGMEM = L"Час";
 static const wchar_t text_steps[] PROGMEM = L"Кроків";
 static const wchar_t text_max[] PROGMEM = L"Макс.";
@@ -58,8 +57,7 @@ static const wchar_t text_adjustment[] PROGMEM = L"Корекція";
 static const wchar_t text_hall[] PROGMEM = L"Холл";
 static const wchar_t text_back[] PROGMEM = L"Назад";
 static const wchar_t text_portion[] PROGMEM = L"Порція";
-static const wchar_t text_calibration[] PROGMEM = L"Калібування...";
-static const wchar_t text_error[] PROGMEM = L"Ой шось не так";
+static const wchar_t text_power[] PROGMEM = L"Потужн.";
 static const wchar_t suffix_ms[] PROGMEM = L"ms";
 
 static const wchar_t main_menu0_text[] PROGMEM = L"Стоп!";
@@ -405,6 +403,10 @@ void settings_screen::sector_settings(gui &g, abstract_screen &) {
     g.current_screen(&g.sector_settings_screen_);
 }
 
+void settings_screen::power_settings(gui &g, abstract_screen &) {
+
+}
+
 void settings_screen::portion_settings(gui &g, abstract_screen &) {
     g.current_screen(&g.portion_screen_);
 }
@@ -412,11 +414,13 @@ void settings_screen::portion_settings(gui &g, abstract_screen &) {
 settings_screen::settings_screen()
     : menu_item_back(text_back, back)
     , menu_item_portion(text_portion, portion_settings)
+    , menu_item_power(text_power, power_settings)
     , menu_item_ir(text_ir_sensor, ir_settings)
     , menu_item_adjust(text_adjustment, adjustment_settings)
     , menu_item_sector(text_sector, sector_settings) {
     menu_item_back.next = &menu_item_portion;
-    menu_item_portion.next = &menu_item_ir;
+    menu_item_portion.next = &menu_item_power;
+    menu_item_power.next = &menu_item_ir;
     menu_item_ir.next = &menu_item_adjust;
     menu_item_adjust.next = &menu_item_sector;
     create_back_trace(&menu_item_back);

@@ -12,7 +12,7 @@ if (CMAKE_BUILD_TYPE MATCHES Release)
     add_compile_options("-Os")
 endif ()
 
-include_directories(/usr/local/include)
+include_directories(/usr/local/include $ENV{ZOAL_PATH})
 
 function(RAGEL_GENERATE_CPP RGL_SRC CPP_SRC)
     get_filename_component(ABS_FIL ${RGL_SRC} ABSOLUTE)

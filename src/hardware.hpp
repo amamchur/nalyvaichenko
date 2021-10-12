@@ -1,7 +1,3 @@
-//
-// Created by andrii on 03.07.21.
-//
-
 #ifndef NALYVAICHENKO_HARDWARE_HPP
 #define NALYVAICHENKO_HARDWARE_HPP
 
@@ -32,11 +28,16 @@ using adapter = zoal::ic::sh1106_adapter_0<128, 64>;
 using graphics = zoal::gfx::renderer<uint8_t, adapter>;
 extern oled_type screen;
 
-using hall_channel = zoal::periph::adc_channel<mcu, adc, hall_sensor>;
-using ir_channel = zoal::periph::adc_channel<mcu, adc, ir_sensor>;
-
 using stepper_type = zoal::io::stepper_28byj<pcb::ard_d31, pcb::ard_d29, pcb::ard_d27, pcb::ard_d25, 8>;
-using bartender_machine_type = bartender_machine<counter::value_type, stepper_type, pump_signal, hall_channel, ir_channel>;
+using bartender_machine_type = bartender_machine<
+    //
+    counter::value_type,
+    stepper_type,
+    pump_signal,
+    pump_pwm_channel,
+    valve_signal,
+    hall_channel,
+    ir_channel>;
 extern bartender_machine_type bartender;
 
 using encoder_button_type = zoal::io::button<uint32_t, encoder_pin_btn>;
@@ -44,8 +45,7 @@ using encoder_type = zoal::io::rotary_encoder<
     //
     encoder_pin_a,
     encoder_pin_b,
-    zoal::io::rotary_2phase_machine,
-    zoal::gpio::pin_mode::input_floating>;
+    zoal::io::rotary_2phase_machine>;
 extern encoder_type encoder;
 extern encoder_button_type encoder_button;
 extern df_player player;
@@ -53,4 +53,4 @@ extern df_player player;
 void initialize_hardware();
 void initialize_i2c_devices();
 
-#endif //NALYVAICHENKO_HARDWARE_HPP
+#endif

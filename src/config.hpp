@@ -1,7 +1,3 @@
-//
-// Created by andrii on 07.07.21.
-//
-
 #ifndef NALYVAICHENKO_CONFIG_HPP
 #define NALYVAICHENKO_CONFIG_HPP
 
@@ -25,10 +21,14 @@ using encoder_pin_btn = pcb::ard_d42;
 using encoder_pin_vcc = pcb::ard_d44;
 using encoder_pin_gnd = pcb::ard_d46;
 
+using pump_pwm_timer = mcu::timer_03;
 using hall_sensor = pcb::ard_a05;
 using ir_sensor = pcb::ard_a04;
-using pump_signal = pcb::ard_d48;
-using valve_signal = pcb::ard_d49;
+using pump_signal = pcb::ard_d03;
+using valve_signal = pcb::ard_d05;
+using pump_pwm_channel = mcu::mux::pwm_channel<pump_pwm_timer, pump_signal>;
+using hall_channel = mcu::mux::adc_channel<adc, hall_sensor>;
+using ir_channel = mcu::mux::adc_channel<adc, ir_sensor>;
 
 using counter = zoal::utils::ms_counter<decltype(milliseconds), &milliseconds>;
 using tools = zoal::utils::tool_set<mcu, F_CPU, counter, void>;
@@ -45,6 +45,7 @@ struct revolver_settings {
 
 struct settings_type {
     int segments_;
+    int pump_power_;
     int hall_rising_threshold;
     int hall_falling_threshold;
     revolver_settings revolver_settings_[7];
@@ -53,4 +54,4 @@ struct settings_type {
 void load_settings(settings_type &settings);
 void save_settings(settings_type &settings);
 
-#endif //NALYVAICHENKO_CONFIG_HPP
+#endif

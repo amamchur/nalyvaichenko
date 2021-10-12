@@ -90,12 +90,14 @@ public:
 private:
     static void back(gui &g, abstract_screen &);
     static void portion_settings(gui &g, abstract_screen &);
+    static void power_settings(gui &g, abstract_screen &);
     static void ir_settings(gui &g, abstract_screen &);
     static void adjustment_settings(gui &g, abstract_screen &);
     static void sector_settings(gui &g, abstract_screen &);
 
     menu_item menu_item_back;
     menu_item menu_item_portion;
+    menu_item menu_item_power;
     menu_item menu_item_ir;
     menu_item menu_item_adjust;
     menu_item menu_item_sector;

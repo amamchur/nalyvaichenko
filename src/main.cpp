@@ -3,16 +3,14 @@
 #include "./logo/ascii_logo.hpp"
 #include "./parsers/command_machine.hpp"
 
-#include <avr/io.h>
 #include <zoal/arch/avr/stream.hpp>
-#include <zoal/utils/scheduler.hpp>
-#include <zoal/utils/new.hpp>
 
 FUSES = {.low = 0xFF, .high = 0xD7, .extended = 0xFC};
 
 constexpr uint8_t fps = 30;
 constexpr uint32_t display_fresh_delay = 1000 / fps;
-volatile bool pending_refresh_frame = false;
+bool pending_refresh_frame = false;
+char command_history[tty_terminal_str_size] = {0};
 
 using scheduler_type = zoal::utils::function_scheduler<uint32_t, 8, void *>;
 scheduler_type general_scheduler;
@@ -38,6 +36,19 @@ void vt100_callback(const zoal::misc::terminal_input *, const char *s, const cha
     transport.send_data(s, e - s);
 }
 
+static void handle_v100(const zoal::misc::terminal_input *, zoal::misc::terminal_machine_event e) {
+    switch (e) {
+    case zoal::misc::terminal_machine_event::up_key:
+        terminal.value(command_history);
+        break;
+    case zoal::misc::terminal_machine_event::down_key:
+        terminal.value("");
+        break;
+    default:
+        break;
+    }
+}
+
 void command_callback(zoal::misc::command_machine *, command_type cmd, int argc, zoal::misc::cmd_arg *argv) {
     switch (argc) {
     case 0:
@@ -53,13 +64,22 @@ void command_callback(zoal::misc::command_machine *, command_type cmd, int argc,
 
 void input_callback(const zoal::misc::terminal_input *, const char *s, const char *e) {
     tty_stream << "\r\n";
-    zoal::misc::command_machine cm;
-    cm.callback(command_callback);
-    cm.run_machine(s, e, e);
+    if (s < e) {
+        auto src = s;
+        auto dst = command_history;
+        while (src < e) {
+            *dst++ = *src++;
+        }
+        *dst = 0;
+
+        zoal::misc::command_machine cm;
+        cm.callback(command_callback);
+        cm.run_machine(s, e, e);
+    }
     terminal.sync();
 }
 
-void render_frame(void *ptr = nullptr) {
+void render_frame(void * = nullptr) {
     pending_refresh_frame = false;
     i2c_req_dispatcher.handle_until_finished();
     user_interface.render();
@@ -214,6 +234,7 @@ int main() {
 
     terminal.vt100_feedback(&vt100_callback);
     terminal.input_callback(&input_callback);
+    terminal.handle_v100(&handle_v100);
     terminal.greeting(terminal_greeting);
     terminal.clear();
     tty_stream << zoal::io::progmem_str(ascii_logo) << zoal::io::progmem_str(help_msg);

@@ -1,9 +1,4 @@
-
 #include "hardware.hpp"
-
-#include "app_state.hpp"
-#include "df_player.hpp"
-#include "volatile_data.hpp"
 
 i2c_req_dispatcher_type i2c_req_dispatcher;
 zoal::periph::i2c_request &request = i2c_req_dispatcher.request;
@@ -15,7 +10,6 @@ encoder_type encoder;
 encoder_button_type encoder_button;
 df_player player;
 
-
 void initialize_hardware() {
     using namespace zoal::gpio;
     using tty_usart_cfg = zoal::periph::usart_115200<F_CPU>;
@@ -24,10 +18,10 @@ void initialize_hardware() {
     using i2c_cfg = zoal::periph::i2c_fast_mode<F_CPU>;
 
     // Power on modules
-    api::optimize<api::clock_on<tty_usart, i2c, timer>>();
+    api::optimize<api::clock_on<tty_usart, df_player_usart, i2c, timer, pump_pwm_timer, adc>>();
 
     // Disable all modules before applying settings
-    api::optimize<api::disable<tty_usart, df_player_usart, i2c, timer, adc>>();
+    api::optimize<api::disable<tty_usart, df_player_usart, i2c, timer, pump_pwm_timer, adc>>();
     api::optimize<
         //
         mcu::mux::usart<tty_usart, mcu::pe_00, mcu::pe_01>::connect,
@@ -43,8 +37,9 @@ void initialize_hardware() {
         mcu::cfg::i2c<i2c, i2c_cfg>::apply,
         //
         mcu::cfg::timer<timer, zoal::periph::timer_mode::up, 64, 1, 0xFF>::apply,
-        //
         mcu::irq::timer<timer>::enable_overflow_interrupt,
+        //
+        mcu::cfg::timer<pump_pwm_timer, zoal::periph::timer_mode::up, 1, 1, 0xFF>::apply,
         //
         stepper_type::gpio_cfg,
         //
@@ -60,7 +55,7 @@ void initialize_hardware() {
     zoal::utils::interrupts::on();
 
     // Enable all modules
-    api::optimize<api::enable<tty_usart, df_player_usart, timer, adc, i2c>>();
+    api::optimize<api::enable<tty_usart, df_player_usart, timer, pump_pwm_timer, adc, i2c>>();
 
     adc::enable();
 }

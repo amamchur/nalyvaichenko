@@ -1,7 +1,3 @@
-//
-// Created by andrii on 06.07.21.
-//
-
 #include "ecafe_logo.hpp"
 
 const uint8_t ecafe_logo [] PROGMEM = {

@@ -1,7 +1,3 @@
-//
-// Created by andrii on 14.08.21.
-//
-
 #ifndef NALYVAICHENKO_DF_PLAYER_HPP
 #define NALYVAICHENKO_DF_PLAYER_HPP
 

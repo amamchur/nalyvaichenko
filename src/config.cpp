@@ -5,6 +5,7 @@
 settings_type eeprom_settings __attribute__((section(".eeprom"))) = {
     //
     6,
+    80,
     850,
     600,
     {

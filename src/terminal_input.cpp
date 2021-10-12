@@ -1,4 +1,3 @@
-
 #include "terminal_input.hpp"
 
 namespace zoal { namespace misc {

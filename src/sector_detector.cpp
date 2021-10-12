@@ -1,7 +1,5 @@
 #include "sector_detector.hpp"
 
-#include "tty_terminal.hpp"
-
 #include <stdlib.h>
 
 detection_result sector_detector::handle(int value) {
@@ -9,8 +7,6 @@ detection_result sector_detector::handle(int value) {
     if (abs(d) < noise_filter) {
         return detection_result::skipped;
     }
-//    int pv = prev_value;
-//    edge_state pes = edge_state_;
 
     prev_value = value;
 
@@ -41,29 +37,6 @@ detection_result sector_detector::handle(int value) {
     }
 
     bool changed = st != sector_state_ && st != sector_state::unknown;
-//    if (changed || pes != edge_state_) {
-//        tty_stream << "pv: " << pv << " cv: " << value << " es: " << (int)edge_state_;
-//
-//        switch (edge_state_) {
-//        case edge_state::idle:
-//            tty_stream << " idle";
-//            break;
-//        case edge_state::rising:
-//            tty_stream << " rising";
-//            break;
-//        case edge_state::falling:
-//            tty_stream << " falling";
-//            break;
-//        }
-//
-//        if (st == sector_state::sector) {
-//            tty_stream << " sector";
-//        } else {
-//            tty_stream << " out";
-//        }
-//        tty_stream << "\r\n";
-//    }
-
     if (changed) {
         sector_state_ = st;
         edge_state_ = edge_state::idle;

@@ -1,7 +1,3 @@
-//
-// Created by andrii on 15.08.21.
-//
-
 #ifndef NALYVAICHENKO_VOICE_HPP
 #define NALYVAICHENKO_VOICE_HPP
 
@@ -14,4 +10,4 @@ public:
     static constexpr int segs_found = 13;
 };
 
-#endif //NALYVAICHENKO_VOICE_HPP
+#endif
