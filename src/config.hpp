@@ -24,8 +24,8 @@ using encoder_pin_gnd = pcb::ard_d46;
 using pump_pwm_timer = mcu::timer_03;
 using hall_sensor = pcb::ard_a05;
 using ir_sensor = pcb::ard_a04;
-using pump_signal = pcb::ard_d03;
-using valve_signal = pcb::ard_d05;
+using pump_signal = pcb::ard_d05;
+using valve_signal = pcb::ard_d03;
 using pump_pwm_channel = mcu::mux::pwm_channel<pump_pwm_timer, pump_signal>;
 using hall_channel = mcu::mux::adc_channel<adc, hall_sensor>;
 using ir_channel = mcu::mux::adc_channel<adc, ir_sensor>;
@@ -43,11 +43,18 @@ struct revolver_settings {
     int sector_adjustment_;
 };
 
+struct portion_settings {
+    uint8_t mg_;
+    int time_;
+};
+
 struct settings_type {
     int segments_;
     int pump_power_;
-    int hall_rising_threshold;
-    int hall_falling_threshold;
+    int hall_rising_threshold_;
+    int hall_falling_threshold_;
+    int current_portion_;
+    portion_settings portion_settings_[5];
     revolver_settings revolver_settings_[7];
 };
 

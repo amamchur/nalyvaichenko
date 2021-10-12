@@ -147,6 +147,23 @@ void process_command(command &cmd) {
     case command_type::rotate:
         bartender.rotate(cmd.value);
         break;
+    case command_type::settings: {
+        auto &s = global_app_state.settings;
+        auto &rs = global_app_state.settings.revolver_settings_[s.segments_];
+        tty_stream << "\r\n";
+        tty_stream << " Segments\t\t: " << s.segments_ << "\r\n";
+        tty_stream << " Pump power\t\t: " << s.pump_power_ << "\r\n";
+        tty_stream << " Hall rising threshold\t: " << s.hall_rising_threshold_ << "\r\n";
+        tty_stream << " Hall falling threshold\t: " << s.hall_falling_threshold_ << "\r\n";
+        tty_stream << " Current portion\t\t: " << s.current_portion_ << "\r\n";
+        tty_stream << " Portion time\t\t: " << rs.portion_time_ << "\r\n";
+        tty_stream << " Portion delay\t\t: " << rs.portion_delay_ << "\r\n";
+        tty_stream << " IR min\t\t\t: " << rs.ir_min_value_ << "\r\n";
+        tty_stream << " IR max\t\t\t: " << rs.ir_max_value_ << "\r\n";
+        tty_stream << " Adjustment\t\t: " << rs.sector_adjustment_ << "\r\n";
+        terminal.sync();
+        break;
+    }
     default:
         break;
     }

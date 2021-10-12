@@ -22,7 +22,8 @@ const char help_msg[] PROGMEM = "Commands: \r\n"
                                 "\tvalve [ms]\tvalve\r\n"
                                 "\tstop\t\tstop machine\r\n"
                                 "\tpump [ms]\tpump\r\n"
-                                "\tplay [track]\tplay track\r\n";
+                                "\tplay [track]\tplay track\r\n"
+                                "\tsettings\tprint current settings\r\n";
 
 ISR(USART0_RX_vect) {
     hardware_events |= hardware_event_tty_rx;

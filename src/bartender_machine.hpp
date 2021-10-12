@@ -48,8 +48,8 @@ public:
             ir_max_value_ = rs.ir_max_value_;
             ir_min_value_ = rs.ir_min_value_;
             sector_adjustment_ = rs.sector_adjustment_;
-            detector_.rising_threshold = global_app_state.settings.hall_rising_threshold;
-            detector_.falling_threshold = global_app_state.settings.hall_falling_threshold;
+            detector_.rising_threshold = global_app_state.settings.hall_rising_threshold_;
+            detector_.falling_threshold = global_app_state.settings.hall_falling_threshold_;
             break;
         default:
             break;
