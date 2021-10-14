@@ -35,8 +35,9 @@ using tools = zoal::utils::tool_set<mcu, F_CPU, counter, void>;
 using delay = tools::delay;
 using overflow_to_tick = zoal::utils::timer_overflow_to_tick<F_CPU, 32, 256>;
 
+static constexpr size_t total_portions = 3;
+
 struct revolver_settings {
-    int portion_time_;
     int portion_delay_;
     int ir_max_value_;
     int ir_min_value_;
@@ -54,7 +55,7 @@ struct settings_type {
     int hall_rising_threshold_;
     int hall_falling_threshold_;
     int current_portion_;
-    portion_settings portion_settings_[5];
+    portion_settings portion_settings_[total_portions];
     revolver_settings revolver_settings_[7];
 };
 

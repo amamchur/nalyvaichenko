@@ -14,11 +14,11 @@ class abstract_screen;
 class menu_item {
 public:
     explicit menu_item(const wchar_t *t);
-    menu_item(const wchar_t *t, void (*a)(gui &g, abstract_screen &parent));
+    menu_item(const wchar_t *t, void (*a)(gui &g, menu_item &item));
 
     const wchar_t *text{nullptr};
-    char details[5]{0};
-    void (*action)(gui &gui, abstract_screen &parent){nullptr};
+    char details[9]{0};
+    void (*action)(gui &gui, menu_item &parent){nullptr};
     menu_item *prev{nullptr};
     menu_item *next{nullptr};
 };
@@ -47,17 +47,14 @@ class main_screen : public menu_screen {
 public:
     main_screen();
 private:
-    static void stop_action(gui &, abstract_screen &parent);
+    static void stop_action(gui &, menu_item &item);
+    static void go_action(gui &, menu_item &item);
+    static void settings_action(gui &g, menu_item &item);
+    static void logo_action(gui &gui, menu_item &item);
+    static void pump_liquid(gui &, menu_item &item);
+    static void portions(gui &, menu_item &item);
 
-    static void go_action(gui &, abstract_screen &parent);
-
-    static void settings_action(gui &g, abstract_screen &parent);
-
-    static void logo_action(gui &gui, abstract_screen &parent);
-
-    static void pump_liquid(gui &, abstract_screen &);
-
-    static void portions(gui &, abstract_screen &parent);
+    void activate(gui &g) override;
 
     menu_item menu_item_stop;
     menu_item menu_item_go;
@@ -85,49 +82,42 @@ class portions_screen : public menu_screen {
 public:
     portions_screen();
 private:
-    static void back(gui &g, abstract_screen &);
+    static void back(gui &g, menu_item &);
+    static void item_action(gui &g, menu_item &);
     void activate(gui &g) override;
 
     menu_item back_item;
-    menu_item portions_1;
-    menu_item portions_2;
-    menu_item portions_3;
-    menu_item portions_4;
-    menu_item portions_5;
+    menu_item portions[total_portions];
 };
 
 class portions_settings_screen : public menu_screen {
 public:
     portions_settings_screen();
 private:
-    static void back(gui &g, abstract_screen &);
+    static void back(gui &g, menu_item &);
+    static void edit_portions(gui &g, menu_item &);
     void activate(gui &g) override;
 
     menu_item back_item;
-    menu_item portions_1;
-    menu_item portions_2;
-    menu_item portions_3;
-    menu_item portions_4;
-    menu_item portions_5;
+    menu_item portions[total_portions];
 };
-
 
 class settings_screen : public menu_screen {
 public:
     settings_screen();
 private:
-    static void back(gui &g, abstract_screen &);
-    static void portion_settings(gui &g, abstract_screen &);
-    static void power_settings(gui &g, abstract_screen &);
-    static void ir_settings(gui &g, abstract_screen &);
-    static void adjustment_settings(gui &g, abstract_screen &);
-    static void sector_settings(gui &g, abstract_screen &);
-    static void sensors_setting(gui &g, abstract_screen &);
-    static void next_segment_action(gui &, abstract_screen &);
-    static void calibrate_action(gui &, abstract_screen &);
+    static void back(gui &g, menu_item &);
+    static void portions_settings(gui &g, menu_item &);
+    static void power_settings(gui &g, menu_item &);
+    static void ir_settings(gui &g, menu_item &);
+    static void adjustment_settings(gui &g, menu_item &);
+    static void sector_settings(gui &g, menu_item &);
+    static void sensors_setting(gui &g, menu_item &);
+    static void next_segment_action(gui &, menu_item &);
+    static void calibrate_action(gui &, menu_item &);
 
     menu_item menu_item_back;
-    menu_item menu_item_portion;
+    menu_item menu_item_portions;
     menu_item menu_item_power;
     menu_item menu_item_ir;
     menu_item menu_item_adjust;
@@ -137,12 +127,22 @@ private:
     menu_item menu_item_calibrate;
 };
 
-class portion_screen : public abstract_screen {
+class edit_portion_screen : public menu_screen {
 public:
-    void process_event(event &e, gui &g) override;
-    void render(gui &g) override;
+    edit_portion_screen();
+
+    static void back_action(gui &g, menu_item &);
+    static void edit_weight(gui &g, menu_item &);
+    static void edit_time(gui &g, menu_item &);
+    static void test_portion(gui &g, menu_item &);
+
     void activate(gui &g) override;
-    int menu_item_index{0};
+    int portion{0};
+
+    menu_item back;
+    menu_item weight;
+    menu_item time;
+    menu_item test;
 };
 
 class power_screen : public abstract_screen {
@@ -204,19 +204,20 @@ public:
     void process_event(event &e) override;
 
     input_int_screen input_int_screen_;
+
     main_screen menu_screen_;
-
-    settings_screen settings_screen_;
-    ir_settings_screen ir_settings_screen_;
-    sector_settings_screen sector_settings_screen_;
-    adjustment_settings_screen adjustment_settings_screen_;
-    portion_screen portion_screen_;
-
     logo_screen logo_screen_;
     calibration_screen calibration_screen_;
     sensor_screen sensor_screen_;
     power_screen power_screen_;
     portions_screen portions_screen_;
+
+    settings_screen settings_screen_;
+    ir_settings_screen ir_settings_screen_;
+    sector_settings_screen sector_settings_screen_;
+    adjustment_settings_screen adjustment_settings_screen_;
+    edit_portion_screen edit_portion_screen_;
+    portions_settings_screen portions_settings_screen_;
 
     void current_screen(abstract_screen *scr);
     inline abstract_screen *current_screen() const {

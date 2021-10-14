@@ -36,14 +36,16 @@ public:
     static constexpr uint32_t step_delay_ms = 1;
 
     void process_event(event &e) override {
-        auto segments = global_app_state.settings.segments_;
-        auto power = global_app_state.settings.pump_power_;
-        auto rs = global_app_state.settings.revolver_settings_[segments];
+        auto &s = global_app_state.settings;
+        auto segments = s.segments_;
+        auto power = s.pump_power_;
+        auto rs = s.revolver_settings_[segments];
+        auto ps = s.portion_settings_[s.current_portion_];
         switch (e.type) {
         case event_type::settings_changed:
             pump_pwm_channel::set(255 * power / 100);
             total_segments_ = segments;
-            portion_time_ = rs.portion_time_;
+            portion_time_ = ps.time_;
             portion_delay_ = rs.portion_delay_;
             ir_max_value_ = rs.ir_max_value_;
             ir_min_value_ = rs.ir_min_value_;

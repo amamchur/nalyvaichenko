@@ -46,7 +46,8 @@ constexpr int menu_item_title_offset = 10;
 constexpr int menu_item_details_offset = 80;
 constexpr int menu_item_value_offset = 80;
 
-static const wchar_t text_pump_time[] PROGMEM = L"Час";
+static const wchar_t text_time[] PROGMEM = L"Час";
+static const wchar_t text_test[] PROGMEM = L"Тест";
 static const wchar_t text_steps[] PROGMEM = L"Кроків";
 static const wchar_t text_max[] PROGMEM = L"Макс.";
 static const wchar_t text_min[] PROGMEM = L"Мін.";
@@ -62,15 +63,16 @@ static const wchar_t text_portion[] PROGMEM = L"Порція";
 static const wchar_t text_portions[] PROGMEM = L"Порції";
 static const wchar_t text_power[] PROGMEM = L"Потужність";
 static const wchar_t suffix_ms[] PROGMEM = L"ms";
+static const wchar_t suffix_mg[] PROGMEM = L"mg";
 static const wchar_t text_sensors[] PROGMEM = L"Сенсори";
 static const wchar_t text_next_segment[] PROGMEM = L"Сегмент++";
-
-static const wchar_t main_menu0_text[] PROGMEM = L"Стоп!";
-static const wchar_t main_menu1_text[] PROGMEM = L"Запуск";
-static const wchar_t main_menu2_text[] PROGMEM = L"Калібування";
-static const wchar_t main_menu3_text[] PROGMEM = L"Налаштув.";
-static const wchar_t main_menu5_text[] PROGMEM = L"Лого";
-static const wchar_t main_menu6_text[] PROGMEM = L"Прокачка";
+static const wchar_t text_weight[] PROGMEM = L"Вага";
+static const wchar_t text_stop[] PROGMEM = L"Стоп!";
+static const wchar_t text_start[] PROGMEM = L"Запуск";
+static const wchar_t text_calibrate[] PROGMEM = L"Калібування";
+static const wchar_t text_config[] PROGMEM = L"Налаштув.";
+static const wchar_t text_logo[] PROGMEM = L"Лого";
+static const wchar_t text_pump[] PROGMEM = L"Прокачка";
 
 class glyph_renderer : public zoal::gfx::glyph_renderer<graphics, zoal::utils::progmem_reader> {
 public:
@@ -93,7 +95,7 @@ menu_item::menu_item(const wchar_t *t)
     details[0] = '\0';
 }
 
-menu_item::menu_item(const wchar_t *t, void (*a)(gui &, abstract_screen &parent))
+menu_item::menu_item(const wchar_t *t, void (*a)(gui &, menu_item &parent))
     : text(t)
     , action(a) {}
 
@@ -145,11 +147,15 @@ static void render_menu_items(menu_item *active) {
 }
 
 void gui::render() {
-    current_screen_->render(*this);
+    if (current_screen_ != nullptr) {
+        current_screen_->render(*this);
+    }
 }
 
 void gui::process_event(event &e) {
-    current_screen_->process_event(e, *this);
+    if (current_screen_ != nullptr) {
+        current_screen_->process_event(e, *this);
+    }
 }
 void gui::current_screen(abstract_screen *scr) {
     current_screen_ = scr;
@@ -158,15 +164,15 @@ void gui::current_screen(abstract_screen *scr) {
 }
 
 main_screen::main_screen()
-    : menu_item_stop(main_menu0_text, stop_action)
-    , menu_item_go(main_menu1_text, go_action)
-    , menu_item_settings(main_menu3_text, settings_action)
-    , menu_item_logo(main_menu5_text, logo_action)
-    , menu_item_pump(main_menu6_text, pump_liquid)
+    : menu_item_stop(text_stop, stop_action)
+    , menu_item_go(text_start, go_action)
+    , menu_item_settings(text_config, settings_action)
+    , menu_item_logo(text_logo, logo_action)
+    , menu_item_pump(text_pump, pump_liquid)
     , menu_item_portions(text_portions, portions) {
-    menu_item_logo.next = &menu_item_stop;
-    menu_item_stop.next = &menu_item_go;
-    menu_item_go.next = &menu_item_portions;
+    menu_item_logo.next = &menu_item_go;
+    menu_item_go.next = &menu_item_stop;
+    menu_item_stop.next = &menu_item_portions;
     menu_item_portions.next = &menu_item_pump;
     menu_item_pump.next = &menu_item_settings;
 
@@ -174,27 +180,34 @@ main_screen::main_screen()
     current_ = &menu_item_logo;
 }
 
-void main_screen::go_action(gui &, abstract_screen &) {
+void main_screen::go_action(gui &, menu_item &) {
     send_command(command_type::go);
 }
 
-void main_screen::logo_action(gui &gui, abstract_screen &) {
+void main_screen::logo_action(gui &gui, menu_item &) {
     send_command(command_type::logo);
 }
 
-void main_screen::pump_liquid(gui &, abstract_screen &) {
+void main_screen::pump_liquid(gui &, menu_item &) {
     send_command(command_type::pump, 500);
 }
 
-void main_screen::settings_action(gui &g, abstract_screen &parent) {
+void main_screen::settings_action(gui &g, menu_item &parent) {
     g.current_screen(&g.settings_screen_);
 }
 
-void main_screen::stop_action(gui &, abstract_screen &parent) {
+void main_screen::stop_action(gui &, menu_item &parent) {
     send_command(command_type::stop);
 }
-void main_screen::portions(gui &g, abstract_screen &parent) {
+
+void main_screen::portions(gui &g, menu_item &parent) {
     g.current_screen(&g.portions_screen_);
+}
+
+void main_screen::activate(gui &g) {
+    const auto &s = global_app_state.settings;
+    const auto &p = s.portion_settings_[s.current_portion_];
+    sprintf(menu_item_go.details, "%dmg", p.mg_);
 }
 
 void ir_settings_screen::process_event(event &e, gui &gui) {
@@ -399,46 +412,46 @@ void sensor_screen::render(gui &g) {
     send_command(command_type::request_render_screen_500ms);
 }
 
-void settings_screen::back(gui &g, abstract_screen &) {
+void settings_screen::back(gui &g, menu_item &) {
     g.current_screen(&g.menu_screen_);
 }
 
-void settings_screen::ir_settings(gui &g, abstract_screen &) {
+void settings_screen::ir_settings(gui &g, menu_item &) {
     g.current_screen(&g.ir_settings_screen_);
 }
 
-void settings_screen::adjustment_settings(gui &g, abstract_screen &) {
+void settings_screen::adjustment_settings(gui &g, menu_item &) {
     g.current_screen(&g.adjustment_settings_screen_);
 }
 
-void settings_screen::sector_settings(gui &g, abstract_screen &) {
+void settings_screen::sector_settings(gui &g, menu_item &) {
     g.current_screen(&g.sector_settings_screen_);
 }
 
-void settings_screen::power_settings(gui &g, abstract_screen &) {
+void settings_screen::power_settings(gui &g, menu_item &) {
     g.current_screen(&g.power_screen_);
 }
 
-void settings_screen::portion_settings(gui &g, abstract_screen &) {
-    g.current_screen(&g.portion_screen_);
+void settings_screen::portions_settings(gui &g, menu_item &) {
+    g.current_screen(&g.portions_settings_screen_);
 }
 
-void settings_screen::sensors_setting(gui &g, abstract_screen &) {
+void settings_screen::sensors_setting(gui &g, menu_item &) {
     g.current_screen(&g.sensor_screen_);
 }
 
 settings_screen::settings_screen()
     : menu_item_back(text_back, back)
-    , menu_item_portion(text_portion, portion_settings)
+    , menu_item_portions(text_portions, portions_settings)
     , menu_item_power(text_power, power_settings)
     , menu_item_ir(text_ir_sensor, ir_settings)
     , menu_item_adjust(text_adjustment, adjustment_settings)
     , menu_item_sector(text_sector, sector_settings)
     , menu_item_sensors(text_sensors, sensors_setting)
     , menu_item_next(text_next_segment, next_segment_action)
-    , menu_item_calibrate(main_menu2_text, calibrate_action) {
-    menu_item_back.next = &menu_item_portion;
-    menu_item_portion.next = &menu_item_power;
+    , menu_item_calibrate(text_calibrate, calibrate_action) {
+    menu_item_back.next = &menu_item_portions;
+    menu_item_portions.next = &menu_item_power;
     menu_item_power.next = &menu_item_ir;
     menu_item_ir.next = &menu_item_adjust;
     menu_item_adjust.next = &menu_item_sector;
@@ -450,11 +463,11 @@ settings_screen::settings_screen()
     current_ = &menu_item_back;
 }
 
-void settings_screen::next_segment_action(gui &, abstract_screen &) {
+void settings_screen::next_segment_action(gui &, menu_item &) {
     send_command(command_type::next_segment);
 }
 
-void settings_screen::calibrate_action(gui &, abstract_screen &) {
+void settings_screen::calibrate_action(gui &, menu_item &) {
     send_command(command_type::calibrate);
 }
 
@@ -494,7 +507,7 @@ void menu_screen::prev_item(gui &g) {
 
 void menu_screen::exec_item(gui &g) {
     if (current_->action != nullptr) {
-        current_->action(g, *this);
+        current_->action(g, *current_);
     }
 }
 
@@ -588,99 +601,78 @@ void sector_settings_screen::render(gui &g) {
 
 void sector_settings_screen::activate(gui &g) {}
 
-void portion_screen::process_event(event &e, gui &gui) {
-    auto segments = global_app_state.settings.segments_;
-    auto &rs = global_app_state.settings.revolver_settings_[segments];
-    switch (e.type) {
-    case event_type::encoder_cw:
-        menu_item_index++;
-        break;
-    case event_type::encoder_ccw:
-        menu_item_index--;
-        break;
-    case event_type::encoder_press: {
-        auto current = gui.current_screen();
-        switch (menu_item_index) {
-        case 0:
-            gui.current_screen(&gui.settings_screen_);
-            break;
-        case 1:
-            gui.input_int_screen_.value = rs.portion_time_;
-            gui.input_int_screen_.min = 100;
-            gui.input_int_screen_.max = 3000;
-            gui.input_int_screen_.title_progmem = text_pump_time;
-            gui.input_int_screen_.suffix_progmem = suffix_ms;
-            gui.input_int_screen_.callback = [&gui, &rs, current](int v) {
-                rs.portion_time_ = v;
-                global_app_state.save_settings();
-
-                gui.current_screen(current);
-            };
-            gui.current_screen(&gui.input_int_screen_);
-            break;
-        case 2:
-            gui.input_int_screen_.value = rs.portion_delay_;
-            gui.input_int_screen_.min = 0;
-            gui.input_int_screen_.max = 500;
-            gui.input_int_screen_.title_progmem = text_pause;
-            gui.input_int_screen_.suffix_progmem = suffix_ms;
-            gui.input_int_screen_.callback = [&gui, &rs, current](int v) {
-                rs.portion_delay_ = v;
-                global_app_state.save_settings();
-
-                gui.current_screen(current);
-            };
-            gui.current_screen(&gui.input_int_screen_);
-            break;
-        default:
-            break;
-        }
-        break;
-    }
-    default:
-        break;
-    }
-
-    menu_item_index = ensure_range(menu_item_index, 0, 2);
-    send_command(command_type::request_render_screen);
+void edit_portion_screen::activate(gui &g) {
+    auto s = global_app_state.settings;
+    auto &ps = s.portion_settings_[portion];
+    sprintf(weight.details, "%dmg", ps.mg_);
+    sprintf(time.details, "%dms", ps.time_);
 }
 
-void portion_screen::render(gui &g) {
-    auto segments = global_app_state.settings.segments_;
-    auto &rs = global_app_state.settings.revolver_settings_[segments];
-    auto font = get_font();
-    auto gfx = graphics::from_memory(screen.buffer.canvas);
-    glyph_renderer gr(gfx, font);
-    gr_stream grs(gr);
+edit_portion_screen::edit_portion_screen()
+    : back(text_back, back_action)
+    , weight(text_weight, edit_weight)
+    , time(text_time, edit_time)
+    , test(text_test, test_portion) {
+    back.next = &weight;
+    weight.next = &time;
+    time.next = &test;
 
-    gfx->clear(0);
-    gr.color(1);
-    gr.position(menu_item_title_offset, font->y_advance);
-    gr.draw_progmem(text_back);
-    if (menu_item_index == 0) {
-        gr.position(0, font->y_advance * 1).draw(">");
-    }
-
-    gr.position(menu_item_title_offset, font->y_advance * 2);
-    gr.draw_progmem(text_pump_time);
-    gr.position(menu_item_value_offset, font->y_advance * 2);
-    grs << rs.portion_time_;
-    gr.draw_progmem(suffix_ms);
-    if (menu_item_index == 1) {
-        gr.position(0, font->y_advance * 2).draw(">");
-    }
-
-    gr.position(menu_item_title_offset, font->y_advance * 3);
-    gr.draw_progmem(text_pause);
-    gr.position(menu_item_value_offset, font->y_advance * 3);
-    grs << rs.portion_delay_;
-    gr.draw_progmem(suffix_ms);
-    if (menu_item_index == 2) {
-        gr.position(0, font->y_advance * 3).draw(">");
-    }
+    create_back_trace(&back);
+    current_ = &back;
 }
 
-void portion_screen::activate(gui &g) {}
+void edit_portion_screen::back_action(gui &g, menu_item &) {
+    g.current_screen(&g.settings_screen_);
+}
+
+void edit_portion_screen::edit_weight(gui &g, menu_item &) {
+    auto me = g.edit_portion_screen_;
+    auto &s = global_app_state.settings;
+    auto &ps = s.portion_settings_[me.portion];
+
+    g.input_int_screen_.value = ps.mg_;
+    g.input_int_screen_.min = 1;
+    g.input_int_screen_.max = 150;
+    g.input_int_screen_.title_progmem = text_weight;
+    g.input_int_screen_.suffix_progmem = suffix_mg;
+    g.input_int_screen_.callback = [&g, &ps](int v) {
+        ps.mg_ = v;
+        global_app_state.save_settings();
+
+        g.current_screen(&g.edit_portion_screen_);
+    };
+    g.current_screen(&g.input_int_screen_);
+}
+
+void edit_portion_screen::edit_time(gui &g, menu_item &) {
+    auto me = g.edit_portion_screen_;
+    auto &s = global_app_state.settings;
+    auto &ps = s.portion_settings_[me.portion];
+
+    g.input_int_screen_.value = ps.time_;
+    g.input_int_screen_.min = 1;
+    g.input_int_screen_.max = 3000;
+    g.input_int_screen_.title_progmem = text_time;
+    g.input_int_screen_.suffix_progmem = suffix_ms;
+    g.input_int_screen_.callback = [&g, &ps](int v) {
+        ps.time_ = v;
+        global_app_state.save_settings();
+
+        g.current_screen(&g.edit_portion_screen_);
+    };
+    g.current_screen(&g.input_int_screen_);
+}
+
+void edit_portion_screen::test_portion(gui &g, menu_item &) {
+    auto me = g.edit_portion_screen_;
+    auto &s = global_app_state.settings;
+    auto &ps = s.portion_settings_[me.portion];
+
+    command cmd{};
+    cmd.type = command_type::pump;
+    cmd.value = ps.time_;
+    send_command(cmd);
+}
 
 void adjustment_settings_screen::process_event(event &e, gui &gui) {
     auto segments = global_app_state.settings.segments_;
@@ -822,51 +814,88 @@ void power_screen::activate(gui &g) {}
 
 portions_screen::portions_screen()
     : back_item(text_back, back)
-    , portions_1(text_portion)
-    , portions_2(text_portion)
-    , portions_3(text_portion)
-    , portions_4(text_portion)
-    , portions_5(text_portion) {
-    portions_1.next = &portions_2;
-    portions_2.next = &portions_3;
-    portions_3.next = &portions_4;
-    portions_4.next = &portions_5;
+    , portions{//
+               {text_portion, item_action},
+               {text_portion, item_action},
+               {text_portion, item_action}} {
+    back_item.next = &portions[0];
 
-    create_back_trace(&portions_1);
-    current_ = &portions_1;
+    for (size_t i = 0; i < total_portions - 1; ++i) {
+        portions[i].next = portions + i + 1;
+    }
+
+    create_back_trace(&back_item);
+    current_ = &back_item;
 }
 
-void portions_screen::back(gui &g, abstract_screen &) {
+void portions_screen::back(gui &g, menu_item &) {
     g.current_screen(&g.menu_screen_);
+}
+
+void portions_screen::item_action(gui &g, menu_item &item) {
+    auto &me = g.portions_screen_;
+    auto &s = global_app_state.settings;
+    int index = -1;
+    for (size_t i = 0; i < total_portions; i++) {
+        if (me.portions + i == &item) {
+            index = static_cast<int>(i);
+            break;
+        }
+    }
+
+    if (index >= 0) {
+        s.current_portion_ = index;
+        global_app_state.save_settings();
+        g.current_screen(&g.menu_screen_);
+    }
 }
 
 void portions_screen::activate(gui &g) {
     auto &ps = global_app_state.settings.portion_settings_;
-    sprintf(portions_1.details, "%dmg", ps[0].mg_);
-    sprintf(portions_2.details, "%dmg", ps[1].mg_);
-    sprintf(portions_3.details, "%dmg", ps[2].mg_);
-    sprintf(portions_4.details, "%dmg", ps[3].mg_);
-    sprintf(portions_5.details, "%dmg", ps[4].mg_);
+    for (size_t i = 0; i < total_portions; i++) {
+        sprintf(portions[i].details, "%dmg", ps[i].mg_);
+    }
 }
 
 portions_settings_screen::portions_settings_screen()
     : back_item(text_back, back)
-    , portions_1(text_portion)
-    , portions_2(text_portion)
-    , portions_3(text_portion)
-    , portions_4(text_portion)
-    , portions_5(text_portion) {
-    portions_1.next = &portions_2;
-    portions_2.next = &portions_3;
-    portions_3.next = &portions_4;
-    portions_4.next = &portions_5;
+    , portions{//
+               {text_portion, edit_portions},
+               {text_portion, edit_portions},
+               {text_portion, edit_portions}} {
+    back_item.next = &portions[0];
 
-    create_back_trace(&portions_1);
-    current_ = &portions_1;
+    for (size_t i = 0; i < total_portions - 1; ++i) {
+        portions[i].next = portions + i + 1;
+    }
+
+    create_back_trace(&back_item);
+    current_ = &back_item;
 }
 
-void portions_settings_screen::back(gui &g, abstract_screen &) {}
+void portions_settings_screen::back(gui &g, menu_item &) {
+    g.current_screen(&g.menu_screen_);
+}
 
 void portions_settings_screen::activate(gui &g) {
-    menu_screen::activate(g);
+    auto &ps = global_app_state.settings.portion_settings_;
+    for (size_t i = 0; i < total_portions; i++) {
+        sprintf(portions[i].details, "%dmg", ps[i].mg_);
+    }
+}
+
+void portions_settings_screen::edit_portions(gui &g, menu_item &item) {
+    auto &me = g.portions_settings_screen_;
+    int index = -1;
+    for (size_t i = 0; i < total_portions; i++) {
+        if (me.portions + i == &item) {
+            index = static_cast<int>(i);
+            break;
+        }
+    }
+
+    if (index >= 0) {
+        g.edit_portion_screen_.portion = index;
+        g.current_screen(&g.edit_portion_screen_);
+    }
 }
