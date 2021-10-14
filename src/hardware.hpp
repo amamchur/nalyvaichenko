@@ -40,14 +40,20 @@ using bartender_machine_type = bartender_machine<
     ir_channel>;
 extern bartender_machine_type bartender;
 
-using encoder_button_config = zoal::io::button_config<true, 7, 500, 50>;
+using encoder_button_config = zoal::io::button_config<true, 20, 500, 50>;
+using button_config = zoal::io::button_config<true, 20, 500, 0>;
+
 using encoder_button_type = zoal::io::button<uint32_t, encoder_pin_btn, encoder_button_config>;
+using start_button_type = zoal::io::button<uint32_t, start_signal , button_config>;
+using stop_button_type = zoal::io::button<uint32_t, stop_signal, button_config>;
 using encoder_type = zoal::io::rotary_encoder<
     //
     encoder_pin_a,
     encoder_pin_b,
     zoal::io::rotary_2phase_machine>;
 extern encoder_type encoder;
+extern start_button_type start_button;
+extern stop_button_type stop_button;
 extern encoder_button_type encoder_button;
 extern df_player player;
 

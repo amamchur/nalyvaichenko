@@ -227,6 +227,20 @@ void process_player_rx() {
     }
 }
 
+void process_buttons() {
+    auto ms = counter::now();
+    start_button.handle(ms, [](zoal::io::button_event e) {
+        if (e == zoal::io::button_event::press) {
+            send_command(command_type::go);
+        }
+    });
+    stop_button.handle(ms, [](zoal::io::button_event e) {
+        if (e == zoal::io::button_event::press) {
+            send_command(command_type::stop);
+        }
+    });
+}
+
 void process_encoder() {
     encoder.handle([](zoal::io::rotary_event e) {
         if (e == zoal::io::rotary_event::direction_1) {
@@ -291,6 +305,7 @@ int main() {
         }
 
         process_encoder();
+        process_buttons();
     }
 
     return 0;

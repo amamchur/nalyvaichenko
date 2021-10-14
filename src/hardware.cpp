@@ -7,6 +7,9 @@ oled_type screen;
 
 bartender_machine_type bartender;
 encoder_type encoder;
+start_button_type start_button;
+stop_button_type stop_button;
+
 encoder_button_type encoder_button;
 df_player player;
 
@@ -44,7 +47,7 @@ void initialize_hardware() {
         stepper_type::gpio_cfg,
         //
         api::mode<zoal::gpio::pin_mode::input, encoder_pin_a, encoder_pin_b>,
-        api::mode<zoal::gpio::pin_mode::input_pull_up, encoder_pin_btn>,
+        api::mode<zoal::gpio::pin_mode::input_pull_up, encoder_pin_btn, start_signal, stop_signal>,
         api::mode<zoal::gpio::pin_mode::output, encoder_pin_vcc, encoder_pin_gnd, pump_signal, valve_signal>,
         api::low<pump_signal, valve_signal, encoder_pin_gnd>,
         api::high<encoder_pin_vcc>
