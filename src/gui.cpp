@@ -7,11 +7,9 @@
 #include "./logo/ecafe_logo.hpp"
 #include "./voice.hpp"
 
-#include <avr/pgmspace.h>
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
-#include <zoal/arch/avr/utils/progmem_reader.hpp>
 #include <zoal/gfx/glyph_renderer.hpp>
 #include <zoal/gfx/renderer.hpp>
 #include <zoal/io/output_stream.hpp>
@@ -74,6 +72,9 @@ static const wchar_t text_config[] PROGMEM = L"Налаштув.";
 static const wchar_t text_logo[] PROGMEM = L"Лого";
 static const wchar_t text_pump[] PROGMEM = L"Прокачка";
 
+#if __AVR_ARCH__
+#include <zoal/arch/avr/utils/progmem_reader.hpp>
+
 class glyph_renderer : public zoal::gfx::glyph_renderer<graphics, zoal::utils::progmem_reader> {
 public:
     glyph_renderer(graphics *g, const zoal::text::font *font)
@@ -87,6 +88,35 @@ public:
         }
     }
 };
+
+#else
+
+namespace zoal { namespace utils {
+    class mem_reader {
+    public:
+        template<class T>
+        static T read_mem(const void *ptr) {
+            ;
+            return *reinterpret_cast<const T *>(ptr);
+        }
+    };
+}}
+
+class glyph_renderer : public zoal::gfx::glyph_renderer<graphics, zoal::utils::mem_reader> {
+public:
+    glyph_renderer(graphics *g, const zoal::text::font *font)
+        : zoal::gfx::glyph_renderer<graphics, zoal::utils::mem_reader>(g, font) {}
+
+    void draw_progmem(const wchar_t *ptr) {
+        auto v = *ptr++;
+        while (v != 0) {
+            draw((wchar_t)v);
+            v = *ptr++;
+        }
+    }
+};
+
+#endif
 
 using gr_stream = zoal::io::output_stream<glyph_renderer>;
 
@@ -162,6 +192,8 @@ void gui::current_screen(abstract_screen *scr) {
     current_screen_->activate(*this);
     send_command(command_type::request_render_screen);
 }
+
+gui::gui() noexcept {};
 
 main_screen::main_screen()
     : menu_item_stop(text_stop, stop_action)
@@ -347,7 +379,11 @@ void input_int_screen::render(gui &g) {
 void input_int_screen::activate(gui &g) {}
 
 void logo_screen::render(gui &g) {
+#if __AVR_ARCH__
     memcpy_P(screen.buffer.canvas, ecafe_logo, sizeof(screen.buffer.canvas));
+#else
+    memcpy(screen.buffer.canvas, ecafe_logo, sizeof(screen.buffer.canvas));
+#endif
 }
 
 void calibration_screen::render(gui &g) {

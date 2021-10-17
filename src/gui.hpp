@@ -5,7 +5,6 @@
 #include "hardware.hpp"
 #include "message.hpp"
 
-#include <avr/pgmspace.h>
 #include <zoal/gfx/glyph_renderer.hpp>
 
 class gui;
@@ -75,7 +74,7 @@ public:
     int value{0};
     int min{0};
     int max{0};
-    zoal::func::function<16, void, int> callback;
+    zoal::func::function<sizeof(void*) * 8, void, int> callback;
 };
 
 class portions_screen : public menu_screen {
@@ -200,6 +199,8 @@ public:
 
 class gui : public event_handler {
 public:
+    gui() noexcept;
+
     void render();
     void process_event(event &e) override;
 

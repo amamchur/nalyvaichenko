@@ -1,7 +1,5 @@
 #include "config.hpp"
 
-#include <avr/eeprom.h>
-
 settings_type eeprom_settings __attribute__((section(".eeprom"))) = {
     //
     6,
@@ -22,6 +20,10 @@ settings_type eeprom_settings __attribute__((section(".eeprom"))) = {
      {100, 50, 0, -10},
      {100, 50, 0, -10}}};
 
+#ifdef __AVR_ARCH__
+
+#include <avr/eeprom.h>
+
 void load_settings(settings_type &settings) {
     eeprom_read_block(&settings, &eeprom_settings, sizeof(settings_type));
 }
@@ -29,3 +31,13 @@ void load_settings(settings_type &settings) {
 void save_settings(settings_type &settings) {
     eeprom_write_block(&settings, &eeprom_settings, sizeof(settings_type));
 }
+
+#else
+
+void load_settings(settings_type &settings) {
+}
+
+void save_settings(settings_type &settings) {
+}
+
+#endif

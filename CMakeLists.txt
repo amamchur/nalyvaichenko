@@ -4,6 +4,18 @@ project(nalyvaichenko CXX C ASM)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 11)
 
+if (USE_QT)
+    set(CMAKE_INCLUDE_CURRENT_DIR ON)
+    set(CMAKE_AUTOUIC ON)
+    set(CMAKE_AUTOMOC ON)
+    set(CMAKE_AUTORCC ON)
+
+    set(CMAKE_CXX_STANDARD 11)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+    find_package(Qt5 COMPONENTS Widgets REQUIRED)
+endif ()
+
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif ()
@@ -58,4 +70,26 @@ add_mcu_executable(
         ${TERMINAL_STATE_MACHINE_SRC}
         ${COMMAND_STATE_MACHINE_SRC}
 )
+
 target_compile_definitions(nalyvaichenko PRIVATE F_CPU=16000000UL)
+
+add_host_executable(emu
+        src/emu/main.cpp
+        src/emu/oledscreen.cpp
+        src/emu/mainwindow.cpp
+        src/emu/mainwindow.ui
+        src/gui.cpp
+        src/message.cpp
+        src/config.cpp
+        src/hardware.cpp
+        src/app_state.cpp
+        src/volatile_data.cpp
+        src/df_player.cpp
+        src/fonts/roboto_regular_12.cpp
+        src/fonts/roboto_regular_16.cpp
+        src/fonts/roboto_regular_18.cpp
+        src/logo/ascii_logo.cpp
+        src/logo/ecafe_logo.cpp
+        )
+target_include_directories(emu PRIVATE src/emu)
+target_compile_definitions(emu PRIVATE F_CPU=16000000UL)

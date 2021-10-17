@@ -1,26 +1,10 @@
-//
-// Created by andrii on 14.08.21.
-//
-
 #include "./df_player.hpp"
 
 #include "./hardware.hpp"
-#include "./volatile_data.hpp"
-
-#include <avr/interrupt.h>
 
 zoal::data::ring_buffer<uint8_t, df_player_rx_buffer_size> df_player_rx_buffer;
 df_player_transport df_player_rx;
 df_player_tx_stream_type df_player_tx_stream(df_player_rx);
-
-ISR(USART1_RX_vect) {
-    hardware_events |= hardware_event_player_rx;
-    df_player_usart::rx_handler<>([](uint8_t value) { df_player_rx_buffer.push_back(value); });
-}
-
-ISR(USART1_UDRE_vect) {
-    df_player_usart::tx_handler([](uint8_t &value) { return df_player_transport::tx_buffer.pop_front(value); });
-}
 
 df_player::df_player() = default;
 
@@ -80,8 +64,6 @@ void df_player::process_response() {
 
     if (cs1 != cs2) {
         waiting_ack_ = false;
-        tty_stream << "Bad checksum!!!"
-                   << "\r\n";
         return;
     }
 
@@ -105,17 +87,17 @@ void df_player::process_response() {
         break;
     }
 
-//    using hex = zoal::io::hexadecimal_functor<uint8_t>;
-//    tty_stream << "\033[2K\r";
-//    for (unsigned char i : request_) {
-//        tty_stream << hex(i) << " ";
-//    }
-//    tty_stream << "\r\n";
-//
-//    for (unsigned char i : response_) {
-//        tty_stream << hex(i) << " ";
-//    }
-//    tty_stream << "\r\n";
+    //    using hex = zoal::io::hexadecimal_functor<uint8_t>;
+    //    tty_stream << "\033[2K\r";
+    //    for (unsigned char i : request_) {
+    //        tty_stream << hex(i) << " ";
+    //    }
+    //    tty_stream << "\r\n";
+    //
+    //    for (unsigned char i : response_) {
+    //        tty_stream << hex(i) << " ";
+    //    }
+    //    tty_stream << "\r\n";
 }
 
 void df_player::play_next_track() {
@@ -136,3 +118,20 @@ void df_player::enqueue_track(int fileNumber) {
     queue_.push_back(track);
     play_next_track();
 }
+
+#ifdef __AVR_ARCH__
+
+#include "./volatile_data.hpp"
+
+#include <avr/interrupt.h>
+
+ISR(USART1_RX_vect) {
+    hardware_events |= hardware_event_player_rx;
+    df_player_usart::rx_handler<>([](uint8_t value) { df_player_rx_buffer.push_back(value); });
+}
+
+ISR(USART1_UDRE_vect) {
+    df_player_usart::tx_handler([](uint8_t &value) { return df_player_transport::tx_buffer.pop_front(value); });
+}
+
+#endif

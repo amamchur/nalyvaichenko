@@ -296,6 +296,7 @@ int main() {
                 i2c_req_dispatcher.handle();
             }
             if (events & hardware_event_tick) {
+                process_buttons();
                 bartender.handle(milliseconds);
                 general_scheduler.handle(milliseconds);
             }
@@ -305,7 +306,6 @@ int main() {
         }
 
         process_encoder();
-        process_buttons();
     }
 
     return 0;

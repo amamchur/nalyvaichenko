@@ -68,6 +68,8 @@ void initialize_i2c_devices() {
     i2c_req_dispatcher.handle_until_finished();
 }
 
+#ifdef __AVR_ARCH__
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunknown-attributes"
 
@@ -82,3 +84,6 @@ ISR(TWI_vect) {
 }
 
 #pragma clang diagnostic pop
+
+#endif
+

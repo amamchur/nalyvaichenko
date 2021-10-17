@@ -102,7 +102,7 @@ function(add_zoal_tests)
 endfunction(add_zoal_tests)
 
 function(add_host_executable NAME)
-    add_executable(${NAME} apps/_empty.cpp)
+    add_executable(${NAME} src/_empty.cpp)
 endfunction(add_host_executable)
 
 function(add_cubemx_project NAME MCU)
