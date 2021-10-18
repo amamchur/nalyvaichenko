@@ -50,25 +50,29 @@ OledScreen::OledScreen(QWidget *parent)
     : QWidget(parent) {}
 
 void OledScreen::drawPixel(QPainter &qp, int x, int y) {
+    QColor color(0x00FF00);
+    QBrush b(color);
     int size = 10;
     int px = x * size;
     int py = y * size;
-    qp.fillRect(px, py, size, size, QBrush("#00FF00"));
+    qp.fillRect(px, py, size, size, b);
 }
 
 void OledScreen::paintEvent(QPaintEvent *event) {
     QPainter qp(this);
-    qp.setBrush(QBrush("#000000"));
+    QColor color(Qt::GlobalColor::black);
+    qp.setBrush(QBrush(color));
     qp.drawRect(0, 0, 1280, 640);
 
     QPen pen(Qt::green, 1, Qt::SolidLine);
     qp.setPen(pen);
-    drawLogo(qp);
+    drawScreen(qp);
 }
 
-void OledScreen::drawLogo(QPainter &qp) {
-    auto canvas = screen.buffer.canvas;
-    for (int i = 0; i < sizeof(ecafe_logo); i++) {
+void OledScreen::drawScreen(QPainter &qp) {
+    auto canvas = ::screen.buffer.canvas;
+    int size = sizeof(ecafe_logo);
+    for (int i = 0; i < size; i++) {
         auto b = canvas[i];
         int x = i % 128;
         int page = i / 128;

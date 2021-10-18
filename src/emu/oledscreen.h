@@ -10,9 +10,9 @@ class OledScreen : public QWidget
 public:
     explicit OledScreen(QWidget *parent = nullptr);
 protected:
-    void drawPixel(QPainter &qp, int x, int y);
+    static void drawPixel(QPainter &qp, int x, int y);
     void paintEvent(QPaintEvent *event);
-    void drawLogo(QPainter &qp);
+    static void drawScreen(QPainter &qp);
 signals:
 
 };
