@@ -28,7 +28,7 @@ using adapter = zoal::ic::sh1106_adapter_0<128, 64>;
 using graphics = zoal::gfx::renderer<uint8_t, adapter>;
 extern oled_type screen;
 
-using stepper_type = zoal::io::stepper_28byj<pcb::ard_d31, pcb::ard_d29, pcb::ard_d27, pcb::ard_d25, 8>;
+using stepper_type = zoal::io::stepper_28byj<stepper_a, stepper_b, stepper_c, stepper_d, 8>;
 using bartender_machine_type = bartender_machine<
     //
     counter::value_type,
@@ -44,7 +44,7 @@ using encoder_button_config = zoal::io::button_config<true, 20, 500, 50>;
 using button_config = zoal::io::button_config<true, 20, 500, 0>;
 
 using encoder_button_type = zoal::io::button<uint32_t, encoder_pin_btn, encoder_button_config>;
-using start_button_type = zoal::io::button<uint32_t, start_signal , button_config>;
+using start_button_type = zoal::io::button<uint32_t, start_signal, button_config>;
 using stop_button_type = zoal::io::button<uint32_t, stop_signal, button_config>;
 using encoder_type = zoal::io::rotary_encoder<
     //

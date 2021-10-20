@@ -27,16 +27,15 @@ void initialize_hardware() {
     api::optimize<api::disable<tty_usart, df_player_usart, i2c, timer, pump_pwm_timer, adc>>();
     api::optimize<
         //
-        mcu::mux::usart<tty_usart, mcu::pe_00, mcu::pe_01>::connect,
+        mcu::mux::usart<tty_usart, tty_usart_rx, tty_usart_tx>::connect,
         mcu::cfg::usart<tty_usart, tty_usart_cfg>::apply,
         //
-        mcu::mux::usart<df_player_usart, mcu::pd_02, mcu::pd_03>::connect,
+        mcu::mux::usart<df_player_usart, df_player_usart_rx, df_player_usart_tx>::connect,
         mcu::cfg::usart<df_player_usart, df_player_usart_cfg>::apply,
         //
-        mcu::mux::adc<adc, pcb::ard_a00>::connect,
         mcu::cfg::adc<adc, adc_cfg>::apply,
         //
-        mcu::mux::i2c<i2c, mcu::pd_01, mcu::pd_00>::connect,
+        mcu::mux::i2c<i2c, i2c_sda, i2c_clk>::connect,
         mcu::cfg::i2c<i2c, i2c_cfg>::apply,
         //
         mcu::cfg::timer<timer, zoal::periph::timer_mode::up, 64, 1, 0xFF>::apply,
