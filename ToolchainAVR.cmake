@@ -93,7 +93,7 @@ function(add_mcu_executable NAME MCU)
     if (${MCU} MATCHES "(atmega)|(attiny)")
         add_avr_executable(${NAME} ${MCU} ${ARGN})
     else ()
-        add_executable(${NAME} apps/_empty.cpp)
+        add_executable(${NAME} src/_empty.cpp)
     endif ()
 endfunction(add_mcu_executable)
 

@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CMakeWorkspace" PROJECT_DIR="$PROJECT_DIR$" />
+  <component name="CidrRootsConfiguration">
+    <excludeRoots>
+      <file path="$PROJECT_DIR$/cube-repo/STM32Cube_FW_F0_V1.11.2" />
+      <file path="$PROJECT_DIR$/cube-repo/STM32Cube_FW_F0_V1.11.3" />
+      <file path="$PROJECT_DIR$/cube-repo/STM32Cube_FW_F1_V1.8.3" />
+      <file path="$PROJECT_DIR$/cube-repo/STM32Cube_FW_F1_V1.8.4" />
+      <file path="$PROJECT_DIR$/cube-repo/STM32Cube_FW_F3_V1.11.2" />
+      <file path="$PROJECT_DIR$/cube-repo/STM32Cube_FW_F3_V1.11.3" />
+      <file path="$PROJECT_DIR$/cube-repo/STM32Cube_FW_L4_V1.17.0" />
+    </excludeRoots>
+  </component>
 </project>

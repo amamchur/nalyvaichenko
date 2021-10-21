@@ -1,4 +1,8 @@
-/cmake-build-release/
-/cmake-build-debug/
+/cmake-build-release
+/cmake-build-debug
 **/*.rl.*
-
+/cube-repo
+/node_modules
+/cmake-build-debug-host
+/cmake-build-release-avr
+/cmake-build-debug-stm32
