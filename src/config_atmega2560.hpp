@@ -2,6 +2,7 @@
 #define NALYVAICHENKO_CONFIG_ATMEGA2560_HPP
 
 #include <zoal/board/arduino_mega.hpp>
+#include <zoal/periph/i2c.hpp>
 
 using pcb = zoal::board::arduino_mega;
 using mcu = pcb::mcu;
@@ -42,5 +43,10 @@ using counter = zoal::utils::ms_counter<decltype(milliseconds), &milliseconds>;
 using tools = zoal::utils::tool_set<mcu, F_CPU, counter, void>;
 using delay = tools::delay;
 using overflow_to_tick = zoal::utils::timer_overflow_to_tick<F_CPU, 32, 256>;
+
+using tty_usart_cfg = zoal::periph::usart_115200<F_CPU>;
+using df_player_usart_cfg = zoal::periph::usart_9600<F_CPU>;
+using adc_cfg = zoal::periph::adc_config<>;
+using i2c_cfg = zoal::periph::i2c_fast_mode<F_CPU>;
 
 #endif

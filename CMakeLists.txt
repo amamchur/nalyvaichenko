@@ -58,7 +58,7 @@ add_mcu_executable(
         src/fonts/roboto_regular_16.cpp
         src/fonts/roboto_regular_18.cpp
         src/gui.cpp
-        src/hardware.cpp
+        src/hardware_atmega2560.cpp
         src/logo/ascii_logo.cpp
         src/logo/ecafe_logo.cpp
         src/main_atmega2560.cpp
@@ -81,7 +81,7 @@ add_host_executable(emu
         src/gui.cpp
         src/message.cpp
         src/config.cpp
-        src/hardware.cpp
+        src/hardware_atmega2560.cpp
         src/app_state.cpp
         src/volatile_data.cpp
         src/df_player.cpp
@@ -98,7 +98,7 @@ target_compile_definitions(emu PRIVATE F_CPU=16000000UL)
 # Begin cubemx-proj variables
 
 # STM32CubeMX project variables for cubemx-proj/stm32f401
-set(STM32F401_SRC 
+set(STM32F401_SRC
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc_ex.c
@@ -143,7 +143,7 @@ set(STM32F401_SRC
         cubemx-proj/stm32f401/Core/Src/system_stm32f4xx.c
         cubemx-proj/stm32f401/Core/Src/usart.c
         cubemx-proj/stm32f401/startup_stm32f401xc.s)
-set(STM32F401_INC 
+set(STM32F401_INC
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/CMSIS/Device/ST/STM32F4xx/Include
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/CMSIS/Include
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/STM32F4xx_HAL_Driver/Inc
@@ -157,5 +157,7 @@ set(STM32F401_OPT_MCU -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard
 set(STM32F401_FLASH_LD cubemx-proj/stm32f401/STM32F401CCUx_FLASH.ld)
 # End cubemx-proj variables
 
-add_mcu_executable(stm32f401 stm32 src/main_stm32f401.cpp)
-target_compile_definitions(stm32f401 PRIVATE main_stm32f401=1)
+add_mcu_executable(stm32f401 stm32
+        src/main_stm32f401.cpp
+        src/hardware_stm32f401.cpp
+        )

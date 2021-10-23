@@ -15,10 +15,6 @@ df_player player;
 
 void initialize_hardware() {
     using namespace zoal::gpio;
-    using tty_usart_cfg = zoal::periph::usart_115200<F_CPU>;
-    using df_player_usart_cfg = zoal::periph::usart_9600<F_CPU>;
-    using adc_cfg = zoal::periph::adc_config<>;
-    using i2c_cfg = zoal::periph::i2c_fast_mode<F_CPU>;
 
     // Power on modules
     api::optimize<api::clock_on<tty_usart, df_player_usart, i2c, timer, pump_pwm_timer, adc>>();
@@ -85,4 +81,3 @@ ISR(TWI_vect) {
 #pragma clang diagnostic pop
 
 #endif
-

@@ -1,5 +1,5 @@
-#ifndef NALYVAICHENKO_HARDWARE_HPP
-#define NALYVAICHENKO_HARDWARE_HPP
+#ifndef NALYVAICHENKO_HARDWARE_ATMEGA2560_HPP
+#define NALYVAICHENKO_HARDWARE_ATMEGA2560_HPP
 
 #include "./config.hpp"
 #include "./volatile_data.hpp"
