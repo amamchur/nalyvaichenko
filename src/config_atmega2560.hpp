@@ -2,6 +2,7 @@
 #define NALYVAICHENKO_CONFIG_ATMEGA2560_HPP
 
 #include <zoal/board/arduino_mega.hpp>
+#include <zoal/periph/adc.hpp>
 #include <zoal/periph/i2c.hpp>
 
 using pcb = zoal::board::arduino_mega;
@@ -46,7 +47,11 @@ using overflow_to_tick = zoal::utils::timer_overflow_to_tick<F_CPU, 32, 256>;
 
 using tty_usart_cfg = zoal::periph::usart_115200<F_CPU>;
 using df_player_usart_cfg = zoal::periph::usart_9600<F_CPU>;
-using adc_cfg = zoal::periph::adc_config<>;
+using adc_cfg = zoal::periph::adc_params<>;
 using i2c_cfg = zoal::periph::i2c_fast_mode<F_CPU>;
+
+using pump_pwm_channel = mcu::mux::pwm_channel<pump_pwm_timer, pump_signal>;
+using hall_channel = mcu::mux::adc_channel<sensor_adc, hall_sensor>;
+using ir_channel = mcu::mux::adc_channel<sensor_adc, ir_sensor>;
 
 #endif

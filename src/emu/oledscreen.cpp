@@ -1,6 +1,6 @@
 #include "oledscreen.h"
 
-#include "../hardware_atmega2560.hpp"
+#include "../hardware.hpp"
 
 #include <QPainter>
 

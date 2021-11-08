@@ -2,7 +2,7 @@
 #include "./gui.hpp"
 #include "./logo/ascii_logo.hpp"
 #include "./parsers/command_machine.hpp"
-
+#include "./hardware.hpp"
 #include <zoal/arch/avr/stream.hpp>
 
 FUSES = {.low = 0xFF, .high = 0xD7, .extended = 0xFC};

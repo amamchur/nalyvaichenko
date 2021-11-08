@@ -66,9 +66,9 @@ ISR(TWI_vect) {
 #endif
 
 extern "C" void USART1_IRQHandler() {
-    tty_usart::tx_handler([](uint8_t &value) { return tty_transport::tx_buffer.pop_front(value); });
-    tty_usart::rx_handler([](uint8_t byte) {
-        tty_rx_buffer.push_back(byte);
-    });
+//    tty_usart::tx_handler([](uint8_t &value) { return tty_transport::tx_buffer.pop_front(value); });
+//    tty_usart::rx_handler([](uint8_t byte) {
+//        tty_rx_buffer.push_back(byte);
+//    });
 }
 

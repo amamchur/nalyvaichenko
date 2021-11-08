@@ -2,7 +2,6 @@
 #define NALYVAICHENKO_GUI_HPP
 
 #include "app_state.hpp"
-#include "hardware.hpp"
 #include "message.hpp"
 
 #include <zoal/gfx/glyph_renderer.hpp>

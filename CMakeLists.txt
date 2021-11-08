@@ -52,6 +52,7 @@ add_mcu_executable(
         mega2560
         atmega2560
         src/app_state.cpp
+        src/settings.cpp
         src/config.cpp
         src/df_player.cpp
         src/fonts/roboto_regular_12.cpp
@@ -81,6 +82,7 @@ add_host_executable(emu
         src/gui.cpp
         src/message.cpp
         src/config.cpp
+        src/settings.cpp
         src/hardware_atmega2560.cpp
         src/app_state.cpp
         src/volatile_data.cpp
@@ -160,4 +162,7 @@ set(STM32F401_FLASH_LD cubemx-proj/stm32f401/STM32F401CCUx_FLASH.ld)
 add_mcu_executable(stm32f401 stm32
         src/main_stm32f401.cpp
         src/hardware_stm32f401.cpp
+        src/df_player.cpp
+        src/config.cpp
+        src/app_state.cpp
         )
