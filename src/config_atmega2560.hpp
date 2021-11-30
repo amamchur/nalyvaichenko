@@ -1,9 +1,13 @@
 #ifndef NALYVAICHENKO_CONFIG_ATMEGA2560_HPP
 #define NALYVAICHENKO_CONFIG_ATMEGA2560_HPP
 
+#include <zoal/arch/avr/stream.hpp>
+#include <zoal/arch/avr/utils/usart_transmitter.hpp>
 #include <zoal/board/arduino_mega.hpp>
 #include <zoal/periph/adc.hpp>
 #include <zoal/periph/i2c.hpp>
+
+#define prog_mem_str(s) zoal::io::progmem_str(s)
 
 using pcb = zoal::board::arduino_mega;
 using mcu = pcb::mcu;
@@ -40,6 +44,8 @@ using df_player_usart_tx = pcb::ard_d18;
 using pump_pwm_timer = mcu::timer_03;
 using sensor_adc = mcu::adc_00;
 
+extern volatile uint32_t milliseconds;
+
 using counter = zoal::utils::ms_counter<decltype(milliseconds), &milliseconds>;
 using tools = zoal::utils::tool_set<mcu, F_CPU, counter, void>;
 using delay = tools::delay;
@@ -53,5 +59,7 @@ using i2c_cfg = zoal::periph::i2c_fast_mode<F_CPU>;
 using pump_pwm_channel = mcu::mux::pwm_channel<pump_pwm_timer, pump_signal>;
 using hall_channel = mcu::mux::adc_channel<sensor_adc, hall_sensor>;
 using ir_channel = mcu::mux::adc_channel<sensor_adc, ir_sensor>;
+
+using tty_transport = zoal::utils::usart_transmitter<tty_usart, 32, zoal::utils::interrupts_off>;
 
 #endif

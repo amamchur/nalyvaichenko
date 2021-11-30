@@ -1,12 +1,9 @@
 #include "./df_player.hpp"
 
-#include "./hardware.hpp"
+#include "event_manager.hpp"
 
 zoal::data::ring_buffer<uint8_t, df_player_rx_buffer_size> df_player_rx_buffer;
-df_player_transport df_player_rx;
-df_player_tx_stream_type df_player_tx_stream(df_player_rx);
-
-df_player::df_player() = default;
+static df_player_transport df_player_rx;
 
 void df_player::send() {
     waiting_ack_ = true;
@@ -22,12 +19,12 @@ uint16_t df_player::calculate_check_sum(const uint8_t *buffer) {
     return -sum;
 }
 
-void df_player::uint16ToArray(uint16_t value, uint8_t *array) {
+void df_player::uint16_to_array(uint16_t value, uint8_t *array) {
     *array = (uint8_t)(value >> 8);
     *(array + 1) = (uint8_t)(value);
 }
 
-uint16_t df_player::arrayToUint16(const uint8_t *array) {
+uint16_t df_player::array_to_uint16(const uint8_t *array) {
     uint16_t value = *array;
     value <<= 8;
     value += *(array + 1);
@@ -36,8 +33,8 @@ uint16_t df_player::arrayToUint16(const uint8_t *array) {
 
 void df_player::send_command(uint8_t command, uint16_t argument) {
     request_[msg_command] = command;
-    uint16ToArray(argument, request_ + msg_parameter);
-    uint16ToArray(calculate_check_sum(request_), request_ + msg_checksum);
+    uint16_to_array(argument, request_ + msg_parameter);
+    uint16_to_array(calculate_check_sum(request_), request_ + msg_checksum);
     send();
 }
 
@@ -60,14 +57,14 @@ void df_player::push_byte(uint8_t byte) {
 
 void df_player::process_response() {
     auto cs1 = calculate_check_sum(response_);
-    auto cs2 = arrayToUint16(response_ + msg_checksum);
+    auto cs2 = array_to_uint16(response_ + msg_checksum);
 
     if (cs1 != cs2) {
         waiting_ack_ = false;
         return;
     }
 
-    auto params = arrayToUint16(response_ + msg_parameter);
+    auto params = array_to_uint16(response_ + msg_parameter);
     auto cmd = response_[msg_command];
     switch (cmd) {
     case 0x03:
@@ -118,20 +115,3 @@ void df_player::enqueue_track(int fileNumber) {
     queue_.push_back(track);
     play_next_track();
 }
-
-#ifdef __AVR_ARCH__
-
-#include "./volatile_data.hpp"
-
-#include <avr/interrupt.h>
-
-ISR(USART1_RX_vect) {
-    hardware_events |= hardware_event_player_rx;
-    df_player_usart::rx_handler<>([](uint8_t value) { df_player_rx_buffer.push_back(value); });
-}
-
-ISR(USART1_UDRE_vect) {
-    df_player_usart::tx_handler([](uint8_t &value) { return df_player_transport::tx_buffer.pop_front(value); });
-}
-
-#endif

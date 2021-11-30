@@ -1,6 +1,6 @@
 #include "message.hpp"
 
-#include "volatile_data.hpp"
+#include "event_manager.hpp"
 
 #include <zoal/utils/interrupts.hpp>
 
@@ -9,7 +9,7 @@ zoal::data::ring_buffer<message, 8> message_queue;
 void send_message(message &msg) {
     zoal::utils::interrupts_off scope_off;
     message_queue.push_back(msg);
-    hardware_events |= hardware_event_msg;
+    event_manager::set(hardware_event_msg);
 }
 
 void send_event(event_type type) {

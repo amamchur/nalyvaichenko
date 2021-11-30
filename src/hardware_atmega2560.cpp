@@ -1,5 +1,7 @@
+#include "event_manager.hpp"
 #include "hardware.hpp"
 
+volatile uint32_t milliseconds;
 i2c_req_dispatcher_type i2c_req_dispatcher;
 zoal::periph::i2c_request &request = i2c_req_dispatcher.request;
 zoal::utils::i2c_scanner scanner;
@@ -69,13 +71,31 @@ void initialize_i2c_devices() {
 #pragma clang diagnostic ignored "-Wunknown-attributes"
 
 ISR(TIMER0_OVF_vect) {
-    hardware_events |= hardware_event_tick;
     milliseconds += overflow_to_tick::step();
+    event_manager::set(hardware_event_tick);
 }
 
 ISR(TWI_vect) {
-    hardware_events |= hardware_event_i2c;
     i2c::handle_request_irq(request);
+    event_manager::set(hardware_event_i2c);
+}
+
+ISR(USART0_RX_vect) {
+    tty_usart::rx_handler<>([](uint8_t value) { tty_rx_buffer.push_back(value); });
+    event_manager::set(hardware_event_tty_rx);
+}
+
+ISR(USART0_UDRE_vect) {
+    tty_usart::tx_handler([](uint8_t &value) { return tty_transport::tx_buffer.pop_front(value); });
+}
+
+ISR(USART1_RX_vect) {
+    event_manager::set(hardware_event_player_rx);
+    df_player_usart::rx_handler<>([](uint8_t value) { df_player_rx_buffer.push_back(value); });
+}
+
+ISR(USART1_UDRE_vect) {
+    df_player_usart::tx_handler([](uint8_t &value) { return df_player_transport::tx_buffer.pop_front(value); });
 }
 
 #pragma clang diagnostic pop

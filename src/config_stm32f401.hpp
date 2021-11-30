@@ -3,19 +3,34 @@
 
 #include "stm32f4xx_hal.h"
 
+#include <zoal/freertos/event_group.hpp>
+#include <zoal/freertos/stream_buffer.hpp>
+#include <zoal/freertos/task.hpp>
 #include <zoal/mcu/stm32f401ccux.hpp>
+#include <zoal/mem/reserve_mem.hpp>
 #include <zoal/utils/cmsis_os2/delay.hpp>
+
+#define prog_mem_str(s) (s)
+
+constexpr uint32_t system_clock_freq = 84000000;
+constexpr uint32_t ahb_clock_freq = 84000000;
+constexpr uint32_t apb1_clock_freq = 42000000;
+constexpr uint32_t apb2_clock_freq = 84000000;
 
 using counter = zoal::utils::ms_counter<uint32_t, &uwTick>;
 using mcu = zoal::mcu::stm32f401ccux;
 using delay = zoal::utils::cmsis_os2::delay<84000000>;
+
 using tty_usart = mcu::usart_01;
+using tty_usart_rx = mcu::pb_07;
+using tty_usart_tx = mcu::pb_06;
+
 using df_player_usart = mcu::usart_02;
 using adc = mcu::adc_01;
 using i2c = mcu::i2c_01;
 
-using i2c_clk = mcu::pb_06;
-using i2c_sda = mcu::pb_07;
+using i2c_clk = mcu::pb_08;
+using i2c_sda = mcu::pb_09;
 
 using encoder_pin_a = mcu::pb_12;
 using encoder_pin_b = mcu::pb_13;
@@ -40,5 +55,27 @@ using valve_signal = mcu::pb_05;
 using pump_pwm_channel = mcu::mux::pwm_channel<pump_pwm_timer, pump_signal>;
 using hall_channel = mcu::mux::adc_channel<sensor_adc, hall_sensor>;
 using ir_channel = mcu::mux::adc_channel<sensor_adc, ir_sensor>;
+
+using stream_buffer_type = zoal::freertos::stream_buffer<zoal::freertos::freertos_allocation_type::static_mem>;
+extern zoal::mem::reserve_mem<stream_buffer_type, 32> rx_stream_buffer;
+extern zoal::mem::reserve_mem<stream_buffer_type, 32> tx_stream_buffer;
+
+class tty_transport {
+public:
+    static void send_byte(uint8_t value) {
+        tx_stream_buffer.send(value, portMAX_DELAY);
+        tty_usart ::enable_tx();
+    }
+
+    static void send_data(const void *data, size_t size) {
+        auto ptr = reinterpret_cast<const char *>(data);
+        while (size > 0) {
+            auto sent = tx_stream_buffer.send(ptr, size, 0);
+            tty_usart ::enable_tx();
+            size -= sent;
+            ptr += sent;
+        }
+    }
+};
 
 #endif

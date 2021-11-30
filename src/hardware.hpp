@@ -2,7 +2,6 @@
 #define NALYVAICHENKO_HARDWARE_ATMEGA2560_HPP
 
 #include "./config.hpp"
-#include "./volatile_data.hpp"
 #include "bartender_machine.hpp"
 #include "df_player.hpp"
 

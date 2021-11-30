@@ -1,8 +1,6 @@
 #ifndef NALYVAICHENKO_CONFIG_HPP
 #define NALYVAICHENKO_CONFIG_HPP
 
-#include "./volatile_data.hpp"
-
 #include <zoal/utils/ms_counter.hpp>
 #include <zoal/utils/tool_set.hpp>
 
