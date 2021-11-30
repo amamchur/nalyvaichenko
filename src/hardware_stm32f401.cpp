@@ -2,8 +2,11 @@
 #include "event_manager.hpp"
 #include "hardware.hpp"
 
-zoal::mem::reserve_mem<stream_buffer_type, 32> rx_stream_buffer(1);
-zoal::mem::reserve_mem<stream_buffer_type, 32> tx_stream_buffer(1);
+zoal::mem::reserve_mem<usart_stream_type, 32> tty_rx_stream(1);
+zoal::mem::reserve_mem<usart_stream_type, 32> tty_tx_stream(1);
+
+zoal::mem::reserve_mem<usart_stream_type, 32> player_rx_stream(1);
+zoal::mem::reserve_mem<usart_stream_type, 32> player_tx_stream(1);
 
 i2c_req_dispatcher_type i2c_req_dispatcher;
 zoal::periph::i2c_request &request = i2c_req_dispatcher.request;
@@ -37,6 +40,10 @@ void initialize_hardware() {
     using oled_spi_mux = mcu::mux::spi<oled_spi, oled_mosi, oled_miso, oled_sck>;
     using oled_spi_cfg = mcu::cfg::spi<oled_spi, oled_params>;
 
+    using adc_params = zoal::periph::adc_params<>;
+    using adc_cfg = mcu::cfg::adc<sensor_adc, adc_params>;
+
+    // Enable bus clock
     api::optimize<
         //
         tty_usart_mux::clock_on,
@@ -51,10 +58,14 @@ void initialize_hardware() {
         oled_spi_mux::clock_on,
         oled_spi_cfg::clock_on,
         //
+        adc_cfg::clock_on,
+        //
         mcu::port_c::clock_on_cas
         //
         >();
-    api::optimize<api::disable<tty_usart, i2c, oled_spi, flash_spi>>();
+
+    // Disable peripherals before configuration
+    api::optimize<api::disable<tty_usart, i2c, oled_spi, flash_spi, sensor_adc>>();
 
     api::optimize<
         //
@@ -73,7 +84,9 @@ void initialize_hardware() {
         api::mode<zoal::gpio::pin_mode::output, flash_spi_cs, oled_cs, oled_ds, oled_res>,
         api::high<flash_spi_cs, oled_cs>,
         api::mode<zoal::gpio::pin_mode::output, mcu::pc_13>>();
-    api::optimize<api::enable<tty_usart, i2c, oled_spi, flash_spi>>();
+
+    // Enable peripherals after configuration
+    api::optimize<api::enable<tty_usart, i2c, oled_spi, flash_spi, sensor_adc>>();
 
     HAL_NVIC_SetPriority(USART1_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
@@ -87,14 +100,55 @@ void initialize_hardware() {
     zoal::utils::interrupts::on();
 }
 
+void tty_tx_transport::send_byte(uint8_t value) {
+    tty_tx_stream.send(value, portMAX_DELAY);
+    tty_usart ::enable_tx();
+}
+
+void tty_tx_transport::send_data(const void *data, size_t size) {
+    auto ptr = reinterpret_cast<const char *>(data);
+    while (size > 0) {
+        auto sent = tty_tx_stream.send(ptr, size, 0);
+        tty_usart ::enable_tx();
+        size -= sent;
+        ptr += sent;
+    }
+}
+
+void df_player_tx_transport::send_byte(uint8_t value) {
+    player_tx_stream.send(value, portMAX_DELAY);
+    tty_usart ::enable_tx();
+}
+
+void df_player_tx_transport::send_data(const void *data, size_t size) {
+    auto ptr = reinterpret_cast<const char *>(data);
+    while (size > 0) {
+        auto sent = player_tx_stream.send(ptr, size, 0);
+        tty_usart ::enable_tx();
+        size -= sent;
+        ptr += sent;
+    }
+}
+
 extern "C" void USART1_IRQHandler() {
     tty_usart::tx_handler([](uint8_t &value) {
         //
-        return tx_stream_buffer.receive_isr(&value, 1) > 0;
+        return tty_tx_stream.receive_isr(&value, 1) > 0;
     });
     tty_usart::rx_handler([](uint8_t byte) {
-        rx_stream_buffer.send_isr(byte);
+        tty_rx_stream.send_isr(byte);
         event_manager::set_isr(hardware_event_tty_rx);
+    });
+}
+
+extern "C" void USART2_IRQHandler() {
+    df_player_usart::tx_handler([](uint8_t &value) {
+        //
+        return player_tx_stream.receive_isr(&value, 1) > 0;
+    });
+    df_player_usart::rx_handler([](uint8_t byte) {
+        player_rx_stream.send_isr(byte);
+        event_manager::set_isr(hardware_event_player_rx);
     });
 }
 

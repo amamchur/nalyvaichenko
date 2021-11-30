@@ -18,7 +18,6 @@
 
 using i2c_req_dispatcher_type = zoal::periph::i2c_request_dispatcher<i2c, sizeof(void *) * 4>;
 extern i2c_req_dispatcher_type i2c_req_dispatcher;
-extern zoal::periph::i2c_request &request;
 extern zoal::utils::i2c_scanner scanner;
 
 extern oled_type screen;

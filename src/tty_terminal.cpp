@@ -9,7 +9,7 @@ const char terminal_greeting[] = "\033[0;32mmcu\033[m$ ";
 
 zoal::data::ring_buffer<uint8_t, tty_rx_buffer_size> tty_rx_buffer;
 
-tty_transport transport;
+tty_tx_transport transport;
 tty_tx_stream_type tty_stream(transport);
 
 static char terminal_buffer[tty_terminal_str_size];

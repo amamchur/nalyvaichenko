@@ -45,6 +45,9 @@ using flash_spi_cs = mcu::pa_04;
 using w25q32 = zoal::ic::w25qxx<flash_spi, flash_spi_cs, delay>;
 
 using df_player_usart = mcu::usart_02;
+using df_player_usart_rx = mcu::pa_03;
+using df_player_usart_tx = mcu::pa_02;
+
 using adc = mcu::adc_01;
 using i2c = mcu::i2c_01;
 
@@ -75,26 +78,22 @@ using pump_pwm_channel = mcu::mux::pwm_channel<pump_pwm_timer, pump_signal>;
 using hall_channel = mcu::mux::adc_channel<sensor_adc, hall_sensor>;
 using ir_channel = mcu::mux::adc_channel<sensor_adc, ir_sensor>;
 
-using stream_buffer_type = zoal::freertos::stream_buffer<zoal::freertos::freertos_allocation_type::static_mem>;
-extern zoal::mem::reserve_mem<stream_buffer_type, 32> rx_stream_buffer;
-extern zoal::mem::reserve_mem<stream_buffer_type, 32> tx_stream_buffer;
+using usart_stream_type = zoal::freertos::stream_buffer<zoal::freertos::freertos_allocation_type::static_mem>;
+extern zoal::mem::reserve_mem<usart_stream_type, 32> tty_rx_stream;
+extern zoal::mem::reserve_mem<usart_stream_type, 32> tty_tx_stream;
+extern zoal::mem::reserve_mem<usart_stream_type, 32> player_rx_stream;
+extern zoal::mem::reserve_mem<usart_stream_type, 32> player_tx_stream;
 
-class tty_transport {
+class tty_tx_transport {
 public:
-    static void send_byte(uint8_t value) {
-        tx_stream_buffer.send(value, portMAX_DELAY);
-        tty_usart ::enable_tx();
-    }
+    static void send_byte(uint8_t value);
+    static void send_data(const void *data, size_t size);
+};
 
-    static void send_data(const void *data, size_t size) {
-        auto ptr = reinterpret_cast<const char *>(data);
-        while (size > 0) {
-            auto sent = tx_stream_buffer.send(ptr, size, 0);
-            tty_usart ::enable_tx();
-            size -= sent;
-            ptr += sent;
-        }
-    }
+class df_player_tx_transport {
+public:
+    static void send_byte(uint8_t value);
+    static void send_data(const void *data, size_t size);
 };
 
 using adapter = zoal::ic::sh1106_adapter_0<128, 64>;

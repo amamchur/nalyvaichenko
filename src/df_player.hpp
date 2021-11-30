@@ -7,11 +7,6 @@
 #include <zoal/func/function.hpp>
 #include <zoal/io/output_stream.hpp>
 
-constexpr size_t df_player_rx_buffer_size = 16;
-
-using df_player_transport = zoal::utils::usart_transmitter<df_player_usart, 16, zoal::utils::interrupts_off>;
-extern zoal::data::ring_buffer<uint8_t, df_player_rx_buffer_size> df_player_rx_buffer;
-
 class df_player_track {
 public:
     int file{0};
@@ -28,18 +23,15 @@ public:
     static constexpr uint8_t msg_parameter = 5;
     static constexpr uint8_t msg_checksum = 7;
     static constexpr uint8_t msg_end = 9;
-
     static constexpr uint8_t cmd_init_params = 0x3F;
 
-    df_player() = default;
+    df_player() noexcept;
 
     void reset();
     void send();
 
     zoal::func::function<16, void, uint8_t, uint16_t> callback_;
 
-    static uint16_t calculate_check_sum(const uint8_t *buffer);
-    static void uint16_to_array(uint16_t value, uint8_t *array);
     void send_command(uint8_t command, uint16_t argument = 0);
     void play(int fileNumber);
     void enqueue_track(int fileNumber);
@@ -48,7 +40,10 @@ public:
     void process_response();
 
 private:
+    static uint16_t calculate_check_sum(const uint8_t *buffer);
+    static void uint16_to_array(uint16_t value, uint8_t *array);
     static uint16_t array_to_uint16(const uint8_t *array);
+
     zoal::data::ring_buffer<df_player_track, 5> queue_;
     uint8_t request_[df_player_message_size]{0x7E, 0xFF, 06, 00, 01, 00, 00, 00, 00, 0xEF};
     uint8_t response_[df_player_message_size]{0x7E, 0xFF, 06, 00, 01, 00, 00, 00, 00, 0xEF};

@@ -2,8 +2,7 @@
 
 #include "event_manager.hpp"
 
-zoal::data::ring_buffer<uint8_t, df_player_rx_buffer_size> df_player_rx_buffer;
-static df_player_transport df_player_rx;
+static df_player_tx_transport df_player_rx;
 
 void df_player::send() {
     waiting_ack_ = true;
@@ -115,3 +114,5 @@ void df_player::enqueue_track(int fileNumber) {
     queue_.push_back(track);
     play_next_track();
 }
+
+df_player::df_player() noexcept {}

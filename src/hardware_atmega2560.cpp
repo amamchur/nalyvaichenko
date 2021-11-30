@@ -13,6 +13,7 @@ start_button_type start_button;
 stop_button_type stop_button;
 
 encoder_button_type encoder_button;
+zoal::data::ring_buffer<uint8_t, df_player_rx_buffer_size> df_player_rx_buffer;
 df_player player;
 
 void initialize_hardware() {
@@ -86,7 +87,7 @@ ISR(USART0_RX_vect) {
 }
 
 ISR(USART0_UDRE_vect) {
-    tty_usart::tx_handler([](uint8_t &value) { return tty_transport::tx_buffer.pop_front(value); });
+    tty_usart::tx_handler([](uint8_t &value) { return tty_tx_transport::tx_buffer.pop_front(value); });
 }
 
 ISR(USART1_RX_vect) {
@@ -95,7 +96,7 @@ ISR(USART1_RX_vect) {
 }
 
 ISR(USART1_UDRE_vect) {
-    df_player_usart::tx_handler([](uint8_t &value) { return df_player_transport::tx_buffer.pop_front(value); });
+    df_player_usart::tx_handler([](uint8_t &value) { return df_player_tx_transport::tx_buffer.pop_front(value); });
 }
 
 #pragma clang diagnostic pop
