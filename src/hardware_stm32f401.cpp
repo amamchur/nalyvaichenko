@@ -29,6 +29,14 @@ void initialize_hardware() {
     using i2c_mux = mcu::mux::i2c<i2c, i2c_sda, i2c_clk>;
     using i2c_cfg = mcu::cfg::i2c<i2c, i2c_params>;
 
+    using flash_params = zoal::periph::spi_params<apb2_clock_freq>;
+    using flash_spi_mux = mcu::mux::spi<flash_spi, flash_spi_mosi, flash_spi_miso, flash_spi_sck>;
+    using flash_spi_cfg = mcu::cfg::spi<flash_spi, flash_params>;
+
+    using oled_params = zoal::periph::spi_params<apb2_clock_freq>;
+    using oled_spi_mux = mcu::mux::spi<oled_spi, oled_mosi, oled_miso, oled_sck>;
+    using oled_spi_cfg = mcu::cfg::spi<oled_spi, oled_params>;
+
     api::optimize<
         //
         tty_usart_mux::clock_on,
@@ -37,10 +45,16 @@ void initialize_hardware() {
         i2c_mux::clock_on,
         i2c_cfg::clock_on,
         //
+        flash_spi_mux::clock_on,
+        flash_spi_cfg::clock_on,
+        //
+        oled_spi_mux::clock_on,
+        oled_spi_cfg::clock_on,
+        //
         mcu::port_c::clock_on_cas
         //
         >();
-    api::optimize<api::disable<tty_usart, i2c>>();
+    api::optimize<api::disable<tty_usart, i2c, oled_spi, flash_spi>>();
 
     api::optimize<
         //
@@ -50,8 +64,16 @@ void initialize_hardware() {
         i2c_mux::connect,
         i2c_cfg::apply,
         //
+        flash_spi_mux::connect,
+        flash_spi_cfg::apply,
+        //
+        oled_spi_mux::connect,
+        oled_spi_cfg::apply,
+        //
+        api::mode<zoal::gpio::pin_mode::output, flash_spi_cs, oled_cs, oled_ds, oled_res>,
+        api::high<flash_spi_cs, oled_cs>,
         api::mode<zoal::gpio::pin_mode::output, mcu::pc_13>>();
-    api::optimize<api::enable<tty_usart, i2c>>();
+    api::optimize<api::enable<tty_usart, i2c, oled_spi, flash_spi>>();
 
     HAL_NVIC_SetPriority(USART1_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
@@ -63,11 +85,6 @@ void initialize_hardware() {
     tty_usart::enable_rx();
 
     zoal::utils::interrupts::on();
-}
-
-void initialize_i2c_devices() {
-    screen.init(i2c_req_dispatcher)([](int) {});
-    i2c_req_dispatcher.handle_until_finished();
 }
 
 extern "C" void USART1_IRQHandler() {

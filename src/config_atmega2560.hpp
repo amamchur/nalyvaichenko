@@ -4,6 +4,8 @@
 #include <zoal/arch/avr/stream.hpp>
 #include <zoal/arch/avr/utils/usart_transmitter.hpp>
 #include <zoal/board/arduino_mega.hpp>
+#include <zoal/gfx/renderer.hpp>
+#include <zoal/ic/sh1106.hpp>
 #include <zoal/periph/adc.hpp>
 #include <zoal/periph/i2c.hpp>
 
@@ -61,5 +63,9 @@ using hall_channel = mcu::mux::adc_channel<sensor_adc, hall_sensor>;
 using ir_channel = mcu::mux::adc_channel<sensor_adc, ir_sensor>;
 
 using tty_transport = zoal::utils::usart_transmitter<tty_usart, 32, zoal::utils::interrupts_off>;
+
+using oled_type = zoal::ic::sh1106_i2c<128, 64, 0x3C>;
+using adapter = zoal::ic::sh1106_adapter_0<128, 64>;
+using graphics = zoal::gfx::renderer<uint8_t, adapter>;
 
 #endif

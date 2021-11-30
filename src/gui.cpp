@@ -72,6 +72,8 @@ static const wchar_t text_config[] PROGMEM = L"Налаштув.";
 static const wchar_t text_logo[] PROGMEM = L"Лого";
 static const wchar_t text_pump[] PROGMEM = L"Прокачка";
 
+gui user_interface;
+
 #if __AVR_ARCH__
 #include <zoal/arch/avr/utils/progmem_reader.hpp>
 

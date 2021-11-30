@@ -38,6 +38,7 @@
     cmd_valve = ('valve' space+ positive) %{ this->command_ = command_type::valve; };
     cmd_pump = ('pump' space+ positive) %{ this->command_ = command_type::pump; };
     cmd_enc = ('enc' space+ integer) %{ this->command_ = command_type::enc; };
+    cmd_press = 'press' %{ this->command_ = command_type::press; };
     cmd_rotate = ('rotate' space+ integer) %{ this->command_ = command_type::rotate; };
     cmd_calibrate = 'calibrate' %{ this->command_ = command_type::calibrate; };
     cmd_settings = 'settings' %{ this->command_ = command_type::settings; };
@@ -56,7 +57,8 @@
         cmd_go |
         cmd_calibrate |
         cmd_rotate |
-        cmd_settings
+        cmd_settings |
+        cmd_press
     );
 
 	main := (space* commands space*) %finished;

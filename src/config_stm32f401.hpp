@@ -6,6 +6,10 @@
 #include <zoal/freertos/event_group.hpp>
 #include <zoal/freertos/stream_buffer.hpp>
 #include <zoal/freertos/task.hpp>
+#include <zoal/gfx/glyph_renderer.hpp>
+#include <zoal/gfx/renderer.hpp>
+#include <zoal/ic/sh1106.hpp>
+#include <zoal/ic/w25qxx.hpp>
 #include <zoal/mcu/stm32f401ccux.hpp>
 #include <zoal/mem/reserve_mem.hpp>
 #include <zoal/utils/cmsis_os2/delay.hpp>
@@ -24,6 +28,21 @@ using delay = zoal::utils::cmsis_os2::delay<84000000>;
 using tty_usart = mcu::usart_01;
 using tty_usart_rx = mcu::pb_07;
 using tty_usart_tx = mcu::pb_06;
+
+using oled_spi = mcu::spi_02;
+using oled_mosi = mcu::pb_14;
+using oled_miso = mcu::pb_15;
+using oled_sck = mcu::pb_13;
+using oled_cs = mcu::pa_10;
+using oled_ds = mcu::pa_09;
+using oled_res = mcu::pa_08;
+
+using flash_spi = mcu::spi_01;
+using flash_spi_mosi = mcu::pa_06;
+using flash_spi_miso = mcu::pa_07;
+using flash_spi_sck = mcu::pa_05;
+using flash_spi_cs = mcu::pa_04;
+using w25q32 = zoal::ic::w25qxx<flash_spi, flash_spi_cs, delay>;
 
 using df_player_usart = mcu::usart_02;
 using adc = mcu::adc_01;
@@ -77,5 +96,9 @@ public:
         }
     }
 };
+
+using adapter = zoal::ic::sh1106_adapter_0<128, 64>;
+using graphics = zoal::gfx::renderer<uint8_t, adapter>;
+using oled_type = zoal::ic::sh1106_spi<128, 64, oled_spi, oled_res, oled_ds, oled_cs, delay>;
 
 #endif

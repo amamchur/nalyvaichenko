@@ -21,9 +21,6 @@ extern i2c_req_dispatcher_type i2c_req_dispatcher;
 extern zoal::periph::i2c_request &request;
 extern zoal::utils::i2c_scanner scanner;
 
-using oled_type = zoal::ic::sh1106_i2c<128, 64, 0x3C>;
-using adapter = zoal::ic::sh1106_adapter_0<128, 64>;
-using graphics = zoal::gfx::renderer<uint8_t, adapter>;
 extern oled_type screen;
 
 using stepper_type = zoal::io::stepper_28byj<stepper_a, stepper_b, stepper_c, stepper_d, 8>;

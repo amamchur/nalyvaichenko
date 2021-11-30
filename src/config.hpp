@@ -12,4 +12,7 @@
 #include "config_atmega2560.hpp"
 #endif
 
+using scheduler_type = zoal::utils::function_scheduler<uint32_t, 8, void *>;
+extern scheduler_type general_scheduler;
+
 #endif

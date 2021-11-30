@@ -3,6 +3,6 @@
 
 #include "message.hpp"
 
-void process_message_();
+void process_message();
 
 #endif

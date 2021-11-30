@@ -161,6 +161,10 @@ add_mcu_executable(stm32f401 stm32
         src/message_processor.cpp
         src/sector_detector.cpp
         src/settings.cpp
+        src/gui.cpp
+        src/logo/ecafe_logo.cpp
+        src/fonts/roboto_regular_16.cpp
+        src/config.cpp
         ${TERMINAL_STATE_MACHINE_SRC}
         ${COMMAND_STATE_MACHINE_SRC}
         #        src/hardware_stm32f401.cpp

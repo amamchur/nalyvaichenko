@@ -228,4 +228,6 @@ private:
     abstract_screen *current_screen_{&menu_screen_};
 };
 
+extern gui user_interface;
+
 #endif //NALYVAICHENKO_GUI_HPP

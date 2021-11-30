@@ -47,7 +47,8 @@ enum class command_type {
     valve,
     enc,
     rotate,
-    settings
+    settings,
+    press
 };
 
 class command {

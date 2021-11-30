@@ -1,6 +1,11 @@
 #include "message_processor.hpp"
 
+#include "gui.hpp"
 #include "hardware.hpp"
+
+constexpr uint8_t fps = 30;
+constexpr uint32_t display_fresh_delay = 1000 / fps;
+bool pending_refresh_frame = false;
 
 static void scan_i2c() {
     tty_stream << "Scanning I2C devices..."
@@ -17,16 +22,26 @@ static void scan_i2c() {
     });
 }
 
-static bool pending_refresh_frame = false;
+#if __AVR_ARCH__
 
-static void render_frame(void * = nullptr) {
-    //    pending_refresh_frame = false;
-    //    i2c_req_dispatcher.handle_until_finished();
-    //    user_interface.render();
-    //    screen.display(i2c_req_dispatcher)([](int) {});
+void render_frame(void * = nullptr) {
+    pending_refresh_frame = false;
+    i2c_req_dispatcher.handle_until_finished();
+    user_interface.render();
+    screen.display(i2c_req_dispatcher)([](int) {});
 }
 
-void process_command_(command &cmd) {
+#else
+
+static void render_frame(void * = nullptr) {
+    pending_refresh_frame = false;
+    user_interface.render();
+    screen.display();
+}
+
+#endif
+
+static void process_command(command &cmd) {
     auto type = cmd.type;
 
     switch (type) {
@@ -72,17 +87,17 @@ void process_command_(command &cmd) {
     case command_type::request_render_screen:
         if (!pending_refresh_frame) {
             pending_refresh_frame = true;
-            //            general_scheduler.schedule(0, display_fresh_delay, render_frame);
+            general_scheduler.schedule(0, display_fresh_delay, render_frame);
         }
         break;
     case command_type::request_render_screen_500ms:
-        //        general_scheduler.schedule(0, 500, render_frame);
+        general_scheduler.schedule(0, 500, render_frame);
         break;
     case command_type::play:
         player.enqueue_track(cmd.value);
         break;
     case command_type::logo:
-        //        user_interface.current_screen(&user_interface.logo_screen_);
+        user_interface.current_screen(&user_interface.logo_screen_);
         break;
     case command_type::rotate:
         bartender.rotate(cmd.value);
@@ -105,32 +120,43 @@ void process_command_(command &cmd) {
         terminal.sync();
         break;
     }
+    case command_type::enc: {
+        auto count = abs(cmd.value);
+        auto e = cmd.value > 0 ? event_type::encoder_cw : event_type::encoder_ccw;
+        for (int i = 0; i < count; i++) {
+            send_event(e);
+        }
+        break;
+    }
+    case command_type::press:
+        send_event(event_type::encoder_press);
+        break;
     default:
         break;
     }
 }
 
-void process_event_(event &e) {
+static void process_event(event &e) {
     switch (e.type) {
     case event_type::calibration_finished:
-        //        user_interface.current_screen(&user_interface.calibration_screen_);
+        user_interface.current_screen(&user_interface.calibration_screen_);
         break;
     default:
-        //        user_interface.process_event(e);
+        user_interface.process_event(e);
         bartender.process_event(e);
         break;
     }
 }
 
-void process_message_() {
+void process_message() {
     message msg{};
     while (pop_message(msg)) {
         switch (msg.type) {
         case message_type::event:
-            process_event_(msg.e);
+            process_event(msg.e);
             break;
         case message_type::command:
-            process_command_(msg.c);
+            process_command(msg.c);
             break;
         }
     }
