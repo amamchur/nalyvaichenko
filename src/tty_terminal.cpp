@@ -29,7 +29,7 @@ const char help_msg[] PROGMEM = "Commands: \r\n"
                                 "\tplay [track]\tplay track\r\n"
                                 "\tsettings\tprint current settings\r\n"
                                 "\tenc [steps]\tencoder\r\n"
-                                "\tpress\tpress\r\n";
+                                "\tpress\t\tpress\r\n";
 
 void command_callback(zoal::misc::command_machine *, command_type cmd, int argc, zoal::misc::cmd_arg *argv) {
     switch (argc) {

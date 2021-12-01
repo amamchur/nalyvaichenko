@@ -1,18 +1,12 @@
 #ifndef NALYVAICHENKO_CONFIG_STM32F401_HPP
 #define NALYVAICHENKO_CONFIG_STM32F401_HPP
 
-#include "stm32f4xx_hal.h"
-
-#include <zoal/freertos/event_group.hpp>
-#include <zoal/freertos/stream_buffer.hpp>
-#include <zoal/freertos/task.hpp>
 #include <zoal/gfx/glyph_renderer.hpp>
 #include <zoal/gfx/renderer.hpp>
 #include <zoal/ic/sh1106.hpp>
 #include <zoal/ic/w25qxx.hpp>
 #include <zoal/mcu/stm32f401ccux.hpp>
 #include <zoal/mem/reserve_mem.hpp>
-#include <zoal/utils/cmsis_os2/delay.hpp>
 
 #define prog_mem_str(s) (s)
 
@@ -21,9 +15,18 @@ constexpr uint32_t ahb_clock_freq = 84000000;
 constexpr uint32_t apb1_clock_freq = 42000000;
 constexpr uint32_t apb2_clock_freq = 84000000;
 
-using counter = zoal::utils::ms_counter<uint32_t, &uwTick>;
 using mcu = zoal::mcu::stm32f401ccux;
-using delay = zoal::utils::cmsis_os2::delay<84000000>;
+
+class counter {
+public:
+    using value_type = uint32_t;
+
+};
+
+class delay {
+public:
+    static void ms(uint32_t){}
+};
 
 using tty_usart = mcu::usart_01;
 using tty_usart_rx = mcu::pb_07;
@@ -77,12 +80,6 @@ using valve_signal = mcu::pb_05;
 using pump_pwm_channel = mcu::mux::pwm_channel<pump_pwm_timer, pump_signal>;
 using hall_channel = mcu::mux::adc_channel<sensor_adc, hall_sensor>;
 using ir_channel = mcu::mux::adc_channel<sensor_adc, ir_sensor>;
-
-using usart_stream_type = zoal::freertos::stream_buffer<zoal::freertos::freertos_allocation_type::static_mem>;
-extern zoal::mem::reserve_mem<usart_stream_type, 32> tty_rx_stream;
-extern zoal::mem::reserve_mem<usart_stream_type, 32> tty_tx_stream;
-extern zoal::mem::reserve_mem<usart_stream_type, 32> player_rx_stream;
-extern zoal::mem::reserve_mem<usart_stream_type, 32> player_tx_stream;
 
 class tty_tx_transport {
 public:

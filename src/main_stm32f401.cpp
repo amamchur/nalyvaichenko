@@ -20,6 +20,19 @@ extern "C" void SystemClock_Config(void);
         auto ms = counter::now();
         bartender.handle(ms);
         general_scheduler.handle(ms);
+        encoder.handle([](zoal::io::rotary_event e) {
+            if (e == zoal::io::rotary_event::direction_1) {
+                send_event(event_type::encoder_ccw);
+            } else {
+                send_event(event_type::encoder_cw);
+            }
+        });
+
+        encoder_button.handle(counter::now(), [](zoal::io::button_event event) {
+            if (event == zoal::io::button_event::press) {
+                send_event(event_type::encoder_press);
+            }
+        });
     }
 }
 

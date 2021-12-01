@@ -6,8 +6,6 @@
 #include <QTime>
 #include <QTimer>
 
-gui user_interface;
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow) {

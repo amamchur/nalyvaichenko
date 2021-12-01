@@ -48,33 +48,6 @@ include_directories(include)
 ragel_generate_cpp(src/parsers/command_machine.rl COMMAND_STATE_MACHINE_SRC)
 ragel_generate_cpp(src/parsers/terminal_machine.rl TERMINAL_STATE_MACHINE_SRC)
 
-add_mcu_executable(
-        mega2560
-        atmega2560
-        src/app_state.cpp
-        src/settings.cpp
-        src/config.cpp
-        src/df_player.cpp
-        src/fonts/roboto_regular_12.cpp
-        src/fonts/roboto_regular_16.cpp
-        src/fonts/roboto_regular_18.cpp
-        src/gui.cpp
-        src/hardware_atmega2560.cpp
-        src/logo/ascii_logo.cpp
-        src/logo/ecafe_logo.cpp
-        src/main_atmega2560.cpp
-        src/message.cpp
-        src/sector_detector.cpp
-        src/terminal_input.cpp
-        src/tty_terminal.cpp
-        src/event_manager.cpp
-        src/message_processor.cpp
-        ${TERMINAL_STATE_MACHINE_SRC}
-        ${COMMAND_STATE_MACHINE_SRC}
-)
-
-target_compile_definitions(mega2560 PRIVATE F_CPU=16000000UL)
-
 add_host_executable(emu
         src/emu/main.cpp
         src/emu/oledscreen.cpp
@@ -84,9 +57,8 @@ add_host_executable(emu
         src/message.cpp
         src/config.cpp
         src/settings.cpp
-        src/hardware_atmega2560.cpp
         src/app_state.cpp
-        src/df_player.cpp
+        src/event_manager.cpp
         src/fonts/roboto_regular_12.cpp
         src/fonts/roboto_regular_16.cpp
         src/fonts/roboto_regular_18.cpp
@@ -167,8 +139,4 @@ add_mcu_executable(stm32f401 stm32
         src/config.cpp
         ${TERMINAL_STATE_MACHINE_SRC}
         ${COMMAND_STATE_MACHINE_SRC}
-        #        src/hardware_stm32f401.cpp
-        #        src/df_player.cpp
-        #        src/config.cpp
-        #        src/app_state.cpp
         )

@@ -22,24 +22,11 @@ static void scan_i2c() {
     });
 }
 
-#if __AVR_ARCH__
-
-void render_frame(void * = nullptr) {
-    pending_refresh_frame = false;
-    i2c_req_dispatcher.handle_until_finished();
-    user_interface.render();
-    screen.display(i2c_req_dispatcher)([](int) {});
-}
-
-#else
-
 static void render_frame(void * = nullptr) {
     pending_refresh_frame = false;
     user_interface.render();
     screen.display();
 }
-
-#endif
 
 static void process_command(command &cmd) {
     auto type = cmd.type;

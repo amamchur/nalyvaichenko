@@ -74,25 +74,6 @@ static const wchar_t text_pump[] PROGMEM = L"Прокачка";
 
 gui user_interface;
 
-#if __AVR_ARCH__
-#include <zoal/arch/avr/utils/progmem_reader.hpp>
-
-class glyph_renderer : public zoal::gfx::glyph_renderer<graphics, zoal::utils::progmem_reader> {
-public:
-    glyph_renderer(graphics *g, const zoal::text::font *font)
-        : zoal::gfx::glyph_renderer<graphics, zoal::utils::progmem_reader>(g, font) {}
-
-    void draw_progmem(const wchar_t *ptr) {
-        auto v = pgm_read_word(ptr++);
-        while (v != 0) {
-            draw((wchar_t)v);
-            v = pgm_read_word(ptr++);
-        }
-    }
-};
-
-#else
-
 namespace zoal { namespace utils {
     class mem_reader {
     public:
@@ -117,8 +98,6 @@ public:
         }
     }
 };
-
-#endif
 
 using gr_stream = zoal::io::output_stream<glyph_renderer>;
 
@@ -381,11 +360,7 @@ void input_int_screen::render(gui &g) {
 void input_int_screen::activate(gui &g) {}
 
 void logo_screen::render(gui &g) {
-#if __AVR_ARCH__
-    memcpy_P(screen.buffer.canvas, ecafe_logo, sizeof(screen.buffer.canvas));
-#else
     memcpy(screen.buffer.canvas, ecafe_logo, sizeof(screen.buffer.canvas));
-#endif
 }
 
 void calibration_screen::render(gui &g) {

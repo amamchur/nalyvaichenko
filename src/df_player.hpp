@@ -3,7 +3,7 @@
 
 #include "./config.hpp"
 
-#include <zoal/arch/avr/utils/usart_transmitter.hpp>
+#include <zoal/data/ring_buffer.hpp>
 #include <zoal/func/function.hpp>
 #include <zoal/io/output_stream.hpp>
 

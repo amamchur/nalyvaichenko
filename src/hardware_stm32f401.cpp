@@ -60,6 +60,8 @@ void initialize_hardware() {
         //
         adc_cfg::clock_on,
         //
+        mcu::port_a::clock_on_cas,
+        mcu::port_b::clock_on_cas,
         mcu::port_c::clock_on_cas
         //
         >();
@@ -83,7 +85,9 @@ void initialize_hardware() {
         //
         api::mode<zoal::gpio::pin_mode::output, flash_spi_cs, oled_cs, oled_ds, oled_res>,
         api::high<flash_spi_cs, oled_cs>,
-        api::mode<zoal::gpio::pin_mode::output, mcu::pc_13>>();
+        api::mode<zoal::gpio::pin_mode::input_pull_up, encoder_pin_a, encoder_pin_b, encoder_pin_btn>
+
+        >();
 
     // Enable peripherals after configuration
     api::optimize<api::enable<tty_usart, i2c, oled_spi, flash_spi, sensor_adc>>();
