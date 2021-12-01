@@ -62,8 +62,8 @@ using pump_pwm_channel = mcu::mux::pwm_channel<pump_pwm_timer, pump_signal>;
 using hall_channel = mcu::mux::adc_channel<sensor_adc, hall_sensor>;
 using ir_channel = mcu::mux::adc_channel<sensor_adc, ir_sensor>;
 
-using tty_transport = zoal::utils::usart_transmitter<tty_usart, 32, zoal::utils::interrupts_off>;
-using df_player_transport = zoal::utils::usart_transmitter<df_player_usart, 16, zoal::utils::interrupts_off>;
+using tty_tx_transport = zoal::utils::usart_transmitter<tty_usart, 32, zoal::utils::interrupts_off>;
+using df_player_tx_transport = zoal::utils::usart_transmitter<df_player_usart, 16, zoal::utils::interrupts_off>;
 
 using oled_type = zoal::ic::sh1106_i2c<128, 64, 0x3C>;
 using adapter = zoal::ic::sh1106_adapter_0<128, 64>;
