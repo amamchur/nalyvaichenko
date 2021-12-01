@@ -47,6 +47,14 @@ include_directories(include)
 
 ragel_generate_cpp(src/parsers/command_machine.rl COMMAND_STATE_MACHINE_SRC)
 ragel_generate_cpp(src/parsers/terminal_machine.rl TERMINAL_STATE_MACHINE_SRC)
+ragel_generate_cpp(src/parsers/flash_machine.rl FLASH_STATE_MACHINE_SRC)
+
+add_host_executable(test
+        src/emu/test.cpp
+        ${FLASH_STATE_MACHINE_SRC}
+        ${COMMAND_STATE_MACHINE_SRC}
+        src/logo/ecafe_logo.cpp
+        src/logo/test_logo.cpp)
 
 add_host_executable(emu
         src/emu/main.cpp
@@ -137,6 +145,8 @@ add_mcu_executable(stm32f401 stm32
         src/logo/ecafe_logo.cpp
         src/fonts/roboto_regular_16.cpp
         src/config.cpp
+        src/flash_manager.cpp
         ${TERMINAL_STATE_MACHINE_SRC}
         ${COMMAND_STATE_MACHINE_SRC}
+        ${FLASH_STATE_MACHINE_SRC}
         )

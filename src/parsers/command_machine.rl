@@ -42,7 +42,8 @@
     cmd_rotate = ('rotate' space+ integer) %{ this->command_ = command_type::rotate; };
     cmd_calibrate = 'calibrate' %{ this->command_ = command_type::calibrate; };
     cmd_settings = 'settings' %{ this->command_ = command_type::settings; };
-
+    cmd_riff = ('riff' space+ integer) %{ this->command_ = command_type::read_image_from_flash; };
+    cmd_flash = ('flash') %{ this->command_ = command_type::flash; };
     commands = (
         cmd_adc |
         cmd_help |
@@ -58,7 +59,9 @@
         cmd_calibrate |
         cmd_rotate |
         cmd_settings |
-        cmd_press
+        cmd_press |
+        cmd_riff |
+        cmd_flash
     );
 
 	main := (space* commands space*) %finished;

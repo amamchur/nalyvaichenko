@@ -8,6 +8,7 @@
 
 class app_state {
 public:
+    bool flash_editor{false};
     settings_type settings;
 
     int max_hall_value_{0};

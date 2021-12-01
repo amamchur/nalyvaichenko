@@ -48,7 +48,10 @@ enum class command_type {
     enc,
     rotate,
     settings,
-    press
+    press,
+
+    flash,
+    read_image_from_flash
 };
 
 class command {

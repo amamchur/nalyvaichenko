@@ -1,4 +1,4 @@
-set(CMAKE_CXX_FLAGS "-O0 -g -Wall --coverage")
+set(CMAKE_CXX_FLAGS "-O0 -g -Wall")
 set(USE_QT 1)
 
 if (WIN32)

@@ -3,6 +3,7 @@
 #include "gui.hpp"
 #include "hardware.hpp"
 #include "message_processor.hpp"
+#include "parsers/flash_machine.hpp"
 #include "stm32f4xx_hal.h"
 
 [[noreturn]] void zoal_main_task(void *);
@@ -36,13 +37,39 @@ extern "C" void SystemClock_Config(void);
     }
 }
 
+zoal::misc::flash_machine fm;
+
+void fm_callback(zoal::misc::flash_machine *m, const zoal::misc::flash_cmd &cmd) {
+    switch (cmd.type) {
+    case zoal::misc::flash_cmd_type::erase_sector:
+        w25q32::sector_erase(cmd.address);
+        tty_stream << "Sector " << cmd.address << " erased" << "\r\n";
+        break;
+    case zoal::misc::flash_cmd_type::prog_mem:
+        w25q32::page_program(cmd.address, cmd.data, cmd.size);
+        tty_stream << "Written " << cmd.size << " bytes to address " << cmd.address << "\r\n";
+        break;
+    case zoal::misc::flash_cmd_type::finish:
+        tty_stream << "\r\nDone\r\n";
+        terminal.sync();
+        global_app_state.flash_editor = false;
+        break;
+    default:
+        break;
+    }
+}
+
 void process_terminal_rx() {
     uint8_t rx_buffer[8];
     size_t size;
     do {
         size = tty_rx_stream.receive(rx_buffer, sizeof(rx_buffer), 0);
         if (size != 0) {
-            terminal.push_and_scan(rx_buffer, size);
+            if (global_app_state.flash_editor) {
+                fm.run_machine((const char *)rx_buffer, (const char *)rx_buffer + size, nullptr);
+            } else {
+                terminal.push_and_scan(rx_buffer, size);
+            }
         }
     } while (size == sizeof(rx_buffer));
 }
@@ -58,6 +85,9 @@ void process_player_rx() {
     } while (size == sizeof(rx_buffer));
 }
 
+#include "./logo/ecafe_logo.hpp"
+
+
 [[noreturn]] void zoal_main_task(void *) {
     initialize_terminal();
 
@@ -66,6 +96,10 @@ void process_player_rx() {
     global_app_state.load_settings();
     user_interface.current_screen(&user_interface.logo_screen_);
     send_command(command_type::render_screen);
+    fm.callback(fm_callback);
+
+//    w25q32::chip_erase();
+//    w25q32::write(4096, ecafe_logo, ecafe_logo_size);
 
     for (;;) {
         auto events = event_manager::get();

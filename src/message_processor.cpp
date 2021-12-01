@@ -118,6 +118,15 @@ static void process_command(command &cmd) {
     case command_type::press:
         send_event(event_type::encoder_press);
         break;
+    case command_type::flash:
+        global_app_state.flash_editor = true;
+        tty_stream << "\r\n";
+        tty_stream << "Flash Editor\r\n";
+        break;
+    case command_type::read_image_from_flash:
+        w25q32::fast_read(cmd.value, &screen.buffer.canvas, sizeof(screen.buffer.canvas));
+        screen.display();
+        break;
     default:
         break;
     }
