@@ -7,6 +7,7 @@
 namespace zoal { namespace misc {
     enum class flash_cmd_type {
         none,
+        erase_chip,
         erase_sector,
         prog_mem,
         finish
@@ -17,7 +18,7 @@ namespace zoal { namespace misc {
         flash_cmd_type type;
         uint32_t address;
         size_t size;
-        uint8_t data[256];
+        uint8_t data[512];
     };
 
     class flash_machine : public zoal::parse::ragel_machine<flash_machine *, const flash_cmd&> {

@@ -16,6 +16,7 @@
 	byte = (xdigit xdigit) ${ take_octet(*p); } %{ this->command_.data[this->command_.size++] = byte; };
 	bytes = byte+;
 
+    cmd_erase_chip = 'erase_chip' %{ this->command_.type = flash_cmd_type::erase_chip; };
     cmd_erase_sector = ('erase_sector' space+ address) %{ this->command_.type = flash_cmd_type::erase_sector; };
     cmd_prog_mem = ('prog_mem' space+ address space+ bytes) %{ this->command_.type = flash_cmd_type::prog_mem; };
     cmd_finish = 'finish' %{ this->command_.type = flash_cmd_type::finish; };
@@ -35,10 +36,10 @@ namespace zoal { namespace misc {
             byte += ch - '0';
         }
         if (ch >= 'a' && ch <= 'f') {
-            byte += ch - 'a';
+            byte += ch - 'a' + 10;
         }
         if (ch >= 'A' && ch <= 'F') {
-            byte += ch - 'A';
+            byte += ch - 'A' + 10;
         }
     }
 

@@ -72,6 +72,7 @@ add_host_executable(emu
         src/fonts/roboto_regular_18.cpp
         src/logo/ascii_logo.cpp
         src/logo/ecafe_logo.cpp
+        src/logo/test_logo.cpp
         )
 target_include_directories(emu PRIVATE src/emu)
 target_compile_definitions(emu PRIVATE F_CPU=16000000UL)
@@ -143,6 +144,7 @@ add_mcu_executable(stm32f401 stm32
         src/settings.cpp
         src/gui.cpp
         src/logo/ecafe_logo.cpp
+        src/logo/test_logo.cpp
         src/fonts/roboto_regular_16.cpp
         src/config.cpp
         src/flash_manager.cpp

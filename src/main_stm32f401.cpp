@@ -1,9 +1,11 @@
-#include "event_manager.hpp"
+#include "./event_manager.hpp"
+#include "./gui.hpp"
+#include "./hardware.hpp"
+#include "./logo/ecafe_logo.hpp"
+#include "./logo/test_logo.hpp"
+#include "./message_processor.hpp"
+#include "./parsers/flash_machine.hpp"
 #include "gpio.h"
-#include "gui.hpp"
-#include "hardware.hpp"
-#include "message_processor.hpp"
-#include "parsers/flash_machine.hpp"
 #include "stm32f4xx_hal.h"
 
 [[noreturn]] void zoal_main_task(void *);
@@ -41,13 +43,18 @@ zoal::misc::flash_machine fm;
 
 void fm_callback(zoal::misc::flash_machine *m, const zoal::misc::flash_cmd &cmd) {
     switch (cmd.type) {
+    case zoal::misc::flash_cmd_type::erase_chip:
+        w25q32::chip_erase();
+        tty_stream << "Chip erased"
+                   << "\r\n";
+        break;
     case zoal::misc::flash_cmd_type::erase_sector:
         w25q32::sector_erase(cmd.address);
-        tty_stream << "Sector " << cmd.address << " erased" << "\r\n";
+        tty_stream << "Sector " << cmd.address << " erased"
+                   << "\r\n";
         break;
     case zoal::misc::flash_cmd_type::prog_mem:
         w25q32::page_program(cmd.address, cmd.data, cmd.size);
-        tty_stream << "Written " << cmd.size << " bytes to address " << cmd.address << "\r\n";
         break;
     case zoal::misc::flash_cmd_type::finish:
         tty_stream << "\r\nDone\r\n";
@@ -85,8 +92,6 @@ void process_player_rx() {
     } while (size == sizeof(rx_buffer));
 }
 
-#include "./logo/ecafe_logo.hpp"
-
 
 [[noreturn]] void zoal_main_task(void *) {
     initialize_terminal();
@@ -97,9 +102,6 @@ void process_player_rx() {
     user_interface.current_screen(&user_interface.logo_screen_);
     send_command(command_type::render_screen);
     fm.callback(fm_callback);
-
-//    w25q32::chip_erase();
-//    w25q32::write(4096, ecafe_logo, ecafe_logo_size);
 
     for (;;) {
         auto events = event_manager::get();

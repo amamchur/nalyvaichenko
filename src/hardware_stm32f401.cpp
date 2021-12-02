@@ -32,7 +32,7 @@ void initialize_hardware() {
     using i2c_mux = mcu::mux::i2c<i2c, i2c_sda, i2c_clk>;
     using i2c_cfg = mcu::cfg::i2c<i2c, i2c_params>;
 
-    using flash_params = zoal::periph::spi_params<apb2_clock_freq>;
+    using flash_params = zoal::periph::spi_params<apb2_clock_freq, 4>;
     using flash_spi_mux = mcu::mux::spi<flash_spi, flash_spi_mosi, flash_spi_miso, flash_spi_sck>;
     using flash_spi_cfg = mcu::cfg::spi<flash_spi, flash_params>;
 
