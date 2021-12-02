@@ -13,6 +13,7 @@ if (USE_QT)
     set(CMAKE_CXX_STANDARD 11)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+    find_package(PNG REQUIRED)
     find_package(Qt5 COMPONENTS Widgets REQUIRED)
 endif ()
 
