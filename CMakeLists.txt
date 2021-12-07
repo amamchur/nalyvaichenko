@@ -13,8 +13,10 @@ if (USE_QT)
     set(CMAKE_CXX_STANDARD 11)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+    find_package(GIF REQUIRED)
     find_package(PNG REQUIRED)
     find_package(Qt5 COMPONENTS Widgets REQUIRED)
+    find_package(Boost 1.67 COMPONENTS log_setup log program_options filesystem thread regex json REQUIRED)
 endif ()
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -50,12 +52,11 @@ ragel_generate_cpp(src/parsers/command_machine.rl COMMAND_STATE_MACHINE_SRC)
 ragel_generate_cpp(src/parsers/terminal_machine.rl TERMINAL_STATE_MACHINE_SRC)
 ragel_generate_cpp(src/parsers/flash_machine.rl FLASH_STATE_MACHINE_SRC)
 
-add_host_executable(test
-        src/emu/test.cpp
+add_host_executable(flash
+        src/emu/flash.cpp
         ${FLASH_STATE_MACHINE_SRC}
         ${COMMAND_STATE_MACHINE_SRC}
-        src/logo/ecafe_logo.cpp
-        src/logo/test_logo.cpp)
+        )
 
 add_host_executable(emu
         src/emu/main.cpp
@@ -68,12 +69,12 @@ add_host_executable(emu
         src/settings.cpp
         src/app_state.cpp
         src/event_manager.cpp
+        src/flash_manager.cpp
         src/fonts/roboto_regular_12.cpp
         src/fonts/roboto_regular_16.cpp
         src/fonts/roboto_regular_18.cpp
         src/logo/ascii_logo.cpp
-        src/logo/ecafe_logo.cpp
-        src/logo/test_logo.cpp
+        ${FLASH_STATE_MACHINE_SRC}
         )
 target_include_directories(emu PRIVATE src/emu)
 target_compile_definitions(emu PRIVATE F_CPU=16000000UL)
@@ -82,7 +83,7 @@ target_compile_definitions(emu PRIVATE F_CPU=16000000UL)
 # Begin cubemx-proj variables
 
 # STM32CubeMX project variables for cubemx-proj/stm32f401
-set(STM32F401_SRC 
+set(STM32F401_SRC
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c
@@ -116,7 +117,7 @@ set(STM32F401_SRC
         cubemx-proj/stm32f401/Core/Src/stm32f4xx_it.c
         cubemx-proj/stm32f401/Core/Src/system_stm32f4xx.c
         cubemx-proj/stm32f401/startup_stm32f401xc.s)
-set(STM32F401_INC 
+set(STM32F401_INC
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/CMSIS/Device/ST/STM32F4xx/Include
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/CMSIS/Include
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/STM32F4xx_HAL_Driver/Inc
@@ -144,11 +145,10 @@ add_mcu_executable(stm32f401 stm32
         src/sector_detector.cpp
         src/settings.cpp
         src/gui.cpp
-        src/logo/ecafe_logo.cpp
-        src/logo/test_logo.cpp
         src/fonts/roboto_regular_16.cpp
         src/config.cpp
         src/flash_manager.cpp
+        src/bartender_machine_v2.cpp
         ${TERMINAL_STATE_MACHINE_SRC}
         ${COMMAND_STATE_MACHINE_SRC}
         ${FLASH_STATE_MACHINE_SRC}

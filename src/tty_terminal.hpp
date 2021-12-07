@@ -20,7 +20,6 @@ extern zoal::misc::terminal_input terminal;
 extern const char terminal_greeting[];
 extern zoal::data::ring_buffer<uint8_t, tty_rx_buffer_size> tty_rx_buffer;
 extern const char help_msg[];
-
 void initialize_terminal();
 
 #endif

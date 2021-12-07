@@ -1,7 +1,7 @@
 #ifndef NALYVAICHENKO_EVENT_MANAGER_HPP
 #define NALYVAICHENKO_EVENT_MANAGER_HPP
 
-#include <stdint.h>
+#include <cstdint>
 
 constexpr uint8_t hardware_event_tick = 1 << 0;
 constexpr uint8_t hardware_event_tty_rx = 1 << 1;

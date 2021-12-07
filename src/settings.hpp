@@ -19,7 +19,7 @@ struct portion_settings {
 };
 
 struct settings_type {
-    uint32_t magic_number;
+    uint32_t magic_number_;
     int segments_;
     int pump_power_;
     int hall_rising_threshold_;

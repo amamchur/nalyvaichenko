@@ -1,15 +1,13 @@
 #include "gui.hpp"
 
-#include "./fonts/roboto_regular_12.hpp"
+#include "./flash_manager.hpp"
 #include "./fonts/roboto_regular_16.hpp"
-#include "./fonts/roboto_regular_18.hpp"
 #include "./hardware.hpp"
-#include "./logo/ecafe_logo.hpp"
 #include "./voice.hpp"
 
-#include <math.h>
-#include <stdio.h>
-#include <time.h>
+#include <cmath>
+#include <cstdio>
+#include <ctime>
 #include <zoal/gfx/glyph_renderer.hpp>
 #include <zoal/gfx/renderer.hpp>
 #include <zoal/io/output_stream.hpp>
@@ -44,33 +42,33 @@ constexpr int menu_item_title_offset = 10;
 constexpr int menu_item_details_offset = 80;
 constexpr int menu_item_value_offset = 80;
 
-static const wchar_t text_time[] PROGMEM = L"Час";
-static const wchar_t text_test[] PROGMEM = L"Тест";
-static const wchar_t text_steps[] PROGMEM = L"Кроків";
-static const wchar_t text_max[] PROGMEM = L"Макс.";
-static const wchar_t text_min[] PROGMEM = L"Мін.";
-static const wchar_t text_pause[] PROGMEM = L"Пауза";
-static const wchar_t text_sector[] PROGMEM = L"Сектор";
-static const wchar_t text_sector_a[] PROGMEM = L"Поріг R";
-static const wchar_t text_sector_b[] PROGMEM = L"Поріг F";
-static const wchar_t text_ir_sensor[] PROGMEM = L"ІЧС";
-static const wchar_t text_adjustment[] PROGMEM = L"Корекція";
-static const wchar_t text_hall[] PROGMEM = L"Холл";
-static const wchar_t text_back[] PROGMEM = L"Назад";
-static const wchar_t text_portion[] PROGMEM = L"Порція";
-static const wchar_t text_portions[] PROGMEM = L"Порції";
-static const wchar_t text_power[] PROGMEM = L"Потужність";
-static const wchar_t suffix_ms[] PROGMEM = L"ms";
-static const wchar_t suffix_mg[] PROGMEM = L"mg";
-static const wchar_t text_sensors[] PROGMEM = L"Сенсори";
-static const wchar_t text_next_segment[] PROGMEM = L"Сегмент++";
-static const wchar_t text_weight[] PROGMEM = L"Вага";
-static const wchar_t text_stop[] PROGMEM = L"Стоп!";
-static const wchar_t text_start[] PROGMEM = L"Запуск";
-static const wchar_t text_calibrate[] PROGMEM = L"Калібрування";
-static const wchar_t text_config[] PROGMEM = L"Налаштув.";
-static const wchar_t text_logo[] PROGMEM = L"Лого";
-static const wchar_t text_pump[] PROGMEM = L"Прокачка";
+static const wchar_t text_time[] = L"Час";
+static const wchar_t text_test[] = L"Тест";
+static const wchar_t text_steps[] = L"Кроків";
+static const wchar_t text_max[] = L"Макс.";
+static const wchar_t text_min[] = L"Мін.";
+static const wchar_t text_pause[] = L"Пауза";
+static const wchar_t text_sector[] = L"Сектор";
+static const wchar_t text_sector_a[] = L"Поріг R";
+static const wchar_t text_sector_b[] = L"Поріг F";
+static const wchar_t text_ir_sensor[] = L"ІЧС";
+static const wchar_t text_adjustment[] = L"Корекція";
+static const wchar_t text_hall[] = L"Холл";
+static const wchar_t text_back[] = L"Назад";
+static const wchar_t text_portion[] = L"Порція";
+static const wchar_t text_portions[] = L"Порції";
+static const wchar_t text_power[] = L"Потужність";
+static const wchar_t suffix_ms[] = L"ms";
+static const wchar_t suffix_mg[] = L"mg";
+static const wchar_t text_sensors[] = L"Сенсори";
+static const wchar_t text_next_segment[] = L"Сегмент++";
+static const wchar_t text_weight[] = L"Вага";
+static const wchar_t text_stop[] = L"Стоп!";
+static const wchar_t text_start[] = L"Запуск";
+static const wchar_t text_calibrate[] = L"Калібрування";
+static const wchar_t text_config[] = L"Налаштув.";
+static const wchar_t text_logo[] = L"Лого";
+static const wchar_t text_pump[] = L"Прокачка";
 
 gui user_interface;
 
@@ -360,7 +358,7 @@ void input_int_screen::render(gui &g) {
 void input_int_screen::activate(gui &g) {}
 
 void logo_screen::render(gui &g) {
-    memcpy(screen.buffer.canvas, ecafe_logo, sizeof(screen.buffer.canvas));
+    fm.read_by_tag(flash_resource::logo, screen.buffer.canvas, sizeof(screen.buffer.canvas));
 }
 
 void calibration_screen::render(gui &g) {
@@ -543,7 +541,7 @@ void sector_settings_screen::process_event(event &e, gui &gui) {
         case 1:
             gui.input_int_screen_.value = global_app_state.settings.hall_rising_threshold_;
             gui.input_int_screen_.min = 0;
-            gui.input_int_screen_.max = 1023;
+            gui.input_int_screen_.max = 4095;
             gui.input_int_screen_.title_progmem = text_sector_a;
             gui.input_int_screen_.suffix_progmem = nullptr;
             gui.input_int_screen_.callback = [&gui, current](int v) {
@@ -557,7 +555,7 @@ void sector_settings_screen::process_event(event &e, gui &gui) {
         case 2:
             gui.input_int_screen_.value = global_app_state.settings.hall_falling_threshold_;
             gui.input_int_screen_.min = 0;
-            gui.input_int_screen_.max = 1023;
+            gui.input_int_screen_.max = 4095;
             gui.input_int_screen_.title_progmem = text_sector_b;
             gui.input_int_screen_.suffix_progmem = nullptr;
             gui.input_int_screen_.callback = [&gui, current](int v) {

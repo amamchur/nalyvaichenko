@@ -14,8 +14,6 @@
 #include <zoal/mem/reserve_mem.hpp>
 #include <zoal/utils/cmsis_os2/delay.hpp>
 
-#define prog_mem_str(s) (s)
-
 constexpr uint32_t system_clock_freq = 84000000;
 constexpr uint32_t ahb_clock_freq = 84000000;
 constexpr uint32_t apb1_clock_freq = 42000000;

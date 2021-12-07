@@ -28,6 +28,8 @@ namespace zoal { namespace misc {
         void reset();
         static int start_state();
         const char *run_machine(const char *p, const char *pe, const char *eof);
+
+        void *context;
     private:
         void take_octet(char ch);
         uint8_t byte;

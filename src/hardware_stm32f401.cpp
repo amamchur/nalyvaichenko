@@ -197,7 +197,7 @@ extern "C" void I2C1_ER_IRQHandler() {
     });
 }
 
-bartender_machine_v2<motor_pwm_timer, motor_step_pwm_channel> machine;
+bartender_machine_v2 machine;
 
 extern "C" void TIM2_IRQHandler(void) {
     motor_pwm_timer::TIMERx_SR::ref() &= ~motor_pwm_timer::TIMERx_SR_UIF;

@@ -1,11 +1,8 @@
 #include "./event_manager.hpp"
+#include "./flash_manager.hpp"
 #include "./gui.hpp"
 #include "./hardware.hpp"
-#include "./logo/ecafe_logo.hpp"
-#include "./logo/test_logo.hpp"
 #include "./message_processor.hpp"
-#include "./parsers/flash_machine.hpp"
-#include "./tty_terminal.hpp"
 #include "gpio.h"
 #include "stm32f4xx_hal.h"
 
@@ -46,33 +43,6 @@ extern "C" void SystemClock_Config(void);
     }
 }
 
-zoal::misc::flash_machine fm;
-
-void fm_callback(zoal::misc::flash_machine *m, const zoal::misc::flash_cmd &cmd) {
-    switch (cmd.type) {
-    case zoal::misc::flash_cmd_type::erase_chip:
-        w25q32::chip_erase();
-        tty_stream << "Chip erased"
-                   << "\r\n";
-        break;
-    case zoal::misc::flash_cmd_type::erase_sector:
-        w25q32::sector_erase(cmd.address);
-        tty_stream << "Sector " << cmd.address << " erased"
-                   << "\r\n";
-        break;
-    case zoal::misc::flash_cmd_type::prog_mem:
-        w25q32::page_program(cmd.address, cmd.data, cmd.size);
-        break;
-    case zoal::misc::flash_cmd_type::finish:
-        tty_stream << "\r\nDone\r\n";
-        terminal.sync();
-        global_app_state.flash_editor = false;
-        break;
-    default:
-        break;
-    }
-}
-
 void process_terminal_rx() {
     uint8_t rx_buffer[8];
     size_t size;
@@ -80,7 +50,7 @@ void process_terminal_rx() {
         size = tty_rx_stream.receive(rx_buffer, sizeof(rx_buffer), 0);
         if (size != 0) {
             if (global_app_state.flash_editor) {
-                fm.run_machine((const char *)rx_buffer, (const char *)rx_buffer + size, nullptr);
+                fm.process_command(rx_buffer, size);
             } else {
                 terminal.push_and_scan(rx_buffer, size);
             }
@@ -107,7 +77,7 @@ void process_player_rx() {
     global_app_state.load_settings();
     user_interface.current_screen(&user_interface.logo_screen_);
     send_command(command_type::render_screen);
-    fm.callback(fm_callback);
+    fm.read_records();
 
     for (;;) {
         auto events = event_manager::get();

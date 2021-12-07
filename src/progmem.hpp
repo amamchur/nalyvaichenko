@@ -1,6 +1,0 @@
-#ifndef NALYVAICHENKO_PROGMEM_HPP
-#define NALYVAICHENKO_PROGMEM_HPP
-
-#define PROGMEM
-
-#endif

@@ -10,11 +10,11 @@
 #include "config_host.hpp"
 #endif
 
-#include "./bartender_machine.hpp"
+#include "./bartender_machine_v2.hpp"
 
 using scheduler_type = zoal::utils::function_scheduler<uint32_t, 8, void *>;
 extern scheduler_type general_scheduler;
 
-extern bartender_machine_v2<motor_pwm_timer, motor_step_pwm_channel> machine;
+extern bartender_machine_v2 machine;
 
 #endif

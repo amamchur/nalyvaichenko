@@ -29,6 +29,10 @@ void event_manager::set(uint8_t e) {
     hardware_events |= e;
 }
 
+void event_manager::set_isr(uint8_t e) {
+    hardware_events |= e;
+}
+
 uint8_t event_manager::get() {
     zoal::utils::interrupts_off off;
     auto events = hardware_events;

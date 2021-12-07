@@ -12,7 +12,8 @@ endfunction(add_mcu_executable)
 
 function(add_host_executable NAME)
     add_executable(${NAME} ${ARGN})
-    target_link_libraries(${NAME} PRIVATE Qt5::Widgets ${PNG_LIBRARY})
+    target_include_directories(${NAME} PRIVATE ${Boost_INCLUDE_DIRS} ${GIF_INCLUDE_DIR})
+    target_link_libraries(${NAME} PRIVATE Qt5::Widgets ${PNG_LIBRARY} ${GIF_LIBRARIES} ${Boost_LIBRARIES})
 endfunction(add_host_executable)
 
 function(add_cubemx_project NAME MCU)

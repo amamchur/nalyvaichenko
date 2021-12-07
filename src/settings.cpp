@@ -28,13 +28,13 @@ const settings_type default_settings = {
 
 void load_settings(settings_type &settings) {
     w25q32::fast_read(settings_flash_address, &settings, sizeof(settings_type));
-    if (settings.magic_number != magic_number) {
+    if (settings.magic_number_ != magic_number) {
         settings = default_settings;
     }
 }
 
 void save_settings(settings_type &settings) {
-    settings.magic_number = magic_number;
+    settings.magic_number_ = magic_number;
     w25q32::sector_erase(w25q32::address_to_sector(settings_flash_address));
     w25q32::write(settings_flash_address, &settings, sizeof(settings_type));
 }

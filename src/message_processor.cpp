@@ -4,6 +4,7 @@
 #include "gui.hpp"
 #include "hardware.hpp"
 #include "tty_terminal.hpp"
+#include "flash_manager.hpp"
 
 constexpr uint8_t fps = 30;
 constexpr uint32_t display_fresh_delay = 1000 / fps;
@@ -36,7 +37,7 @@ static void process_command(command &cmd) {
     switch (type) {
     case command_type::show_help:
         tty_stream << "\033[2K\r";
-        tty_stream << prog_mem_str(help_msg);
+        tty_stream << help_msg;
         terminal.sync();
         break;
     case command_type::show_adc: {
@@ -125,10 +126,11 @@ static void process_command(command &cmd) {
         tty_stream << "\r\n";
         tty_stream << "Flash Editor\r\n";
         break;
-    case command_type::read_image_from_flash:
-        w25q32::fast_read(cmd.value, &screen.buffer.canvas, sizeof(screen.buffer.canvas));
+    case command_type::read_image_from_flash: {
+        fm.read_by_tag(cmd.value, &screen.buffer.canvas, sizeof(screen.buffer.canvas));
         screen.display();
         break;
+    }
     case command_type::enable_motor:
         machine.start();
         break;

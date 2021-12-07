@@ -15,21 +15,20 @@ tty_tx_stream_type tty_stream(transport);
 static char terminal_buffer[tty_terminal_str_size];
 zoal::misc::terminal_input terminal(terminal_buffer, sizeof(terminal_buffer));
 char command_history[tty_terminal_str_size] = {0};
-
-const char help_msg[] PROGMEM = "Commands: \r\n"
-                                "\thelp\t\tdisplay help\r\n"
-                                "\ti2c\t\tscan i2c devices\r\n"
-                                "\tcalibrate\tcalibrate revolver\r\n"
-                                "\tnext\t\tnext segment\r\n"
-                                "\tgo\t\trun machines\r\n"
-                                "\tadc\t\tadc\r\n"
-                                "\tvalve [ms]\tvalve\r\n"
-                                "\tstop\t\tstop machine\r\n"
-                                "\tpump [ms]\tpump\r\n"
-                                "\tplay [track]\tplay track\r\n"
-                                "\tsettings\tprint current settings\r\n"
-                                "\tenc [steps]\tencoder\r\n"
-                                "\tpress\t\tpress\r\n";
+const char help_msg[] = "Commands: \r\n"
+                        "\thelp\t\tdisplay help\r\n"
+                        "\ti2c\t\tscan i2c devices\r\n"
+                        "\tcalibrate\tcalibrate revolver\r\n"
+                        "\tnext\t\tnext segment\r\n"
+                        "\tgo\t\trun machines\r\n"
+                        "\tadc\t\tadc\r\n"
+                        "\tvalve [ms]\tvalve\r\n"
+                        "\tstop\t\tstop machine\r\n"
+                        "\tpump [ms]\tpump\r\n"
+                        "\tplay [track]\tplay track\r\n"
+                        "\tsettings\tprint current settings\r\n"
+                        "\tenc [steps]\tencoder\r\n"
+                        "\tpress\t\tpress\r\n";
 
 void command_callback(zoal::misc::command_machine *, command_type cmd, int argc, zoal::misc::cmd_arg *argv) {
     switch (argc) {
@@ -84,6 +83,6 @@ void initialize_terminal() {
     terminal.handle_v100(&handle_v100);
     terminal.greeting(terminal_greeting);
     terminal.clear();
-    tty_stream << prog_mem_str(ascii_logo) << prog_mem_str(help_msg);
+    tty_stream << ascii_logo << help_msg;
     terminal.sync();
 }
