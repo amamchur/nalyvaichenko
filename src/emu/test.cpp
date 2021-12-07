@@ -91,7 +91,24 @@ void read_png() {
     png_destroy_read_struct(&png, &info, nullptr);
 }
 
+#include "../stepper_kinematics.hpp"
+
 int main(int argc, char *argv[]) {
+    stepper_kinematics<> sm;
+    sm.setup(32 * 2000, 32 * 100, 32 * 200);
+    double time = 0;
+    while (!std::isinf(sm.period())) {
+//        std::cout << "s: " << sm.current_step_ << " p: " << sm.period() << " v: " << sm.speed() << std::endl;
+        time += sm.period();
+        sm.inc_step();
+    }
+
+    std::cout << "time: " << time / 1000000 << std::endl;
+
+    return 0;
+}
+
+int main__(int argc, char *argv[]) {
     read_png();
 
     fm.callback(fm_callback);

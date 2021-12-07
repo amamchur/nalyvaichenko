@@ -82,7 +82,7 @@ target_compile_definitions(emu PRIVATE F_CPU=16000000UL)
 # Begin cubemx-proj variables
 
 # STM32CubeMX project variables for cubemx-proj/stm32f401
-set(STM32F401_SRC
+set(STM32F401_SRC 
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c
@@ -116,7 +116,7 @@ set(STM32F401_SRC
         cubemx-proj/stm32f401/Core/Src/stm32f4xx_it.c
         cubemx-proj/stm32f401/Core/Src/system_stm32f4xx.c
         cubemx-proj/stm32f401/startup_stm32f401xc.s)
-set(STM32F401_INC
+set(STM32F401_INC 
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/CMSIS/Device/ST/STM32F4xx/Include
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/CMSIS/Include
         cube-repo/STM32Cube_FW_F4_V1.26.2/Drivers/STM32F4xx_HAL_Driver/Inc

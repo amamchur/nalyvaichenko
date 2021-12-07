@@ -44,6 +44,12 @@
     cmd_settings = 'settings' %{ this->command_ = command_type::settings; };
     cmd_riff = ('riff' space+ integer) %{ this->command_ = command_type::read_image_from_flash; };
     cmd_flash = ('flash') %{ this->command_ = command_type::flash; };
+    cmd_em = ('em') %{ this->command_ = command_type::enable_motor; };
+    cmd_dm = ('dm') %{ this->command_ = command_type::disable_motor; };
+    cmd_dira = ('dira') %{ this->command_ = command_type::direction_a; };
+    cmd_dirb = ('dirb') %{ this->command_ = command_type::direction_b; };
+    cmd_rpm = ('rpm' space+ integer) %{ this->command_ = command_type::rpm; };
+
     commands = (
         cmd_adc |
         cmd_help |
@@ -61,7 +67,12 @@
         cmd_settings |
         cmd_press |
         cmd_riff |
-        cmd_flash
+        cmd_flash |
+        cmd_em |
+        cmd_dm |
+        cmd_dira |
+        cmd_dirb |
+        cmd_rpm
     );
 
 	main := (space* commands space*) %finished;

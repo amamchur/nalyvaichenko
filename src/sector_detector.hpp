@@ -13,9 +13,9 @@ public:
     edge_state edge_state_{edge_state::idle};
 
     int prev_value{0};
-    int noise_filter{1};
-    int rising_threshold{700};
-    int falling_threshold{600};
+    int noise_filter{50};
+    int rising_threshold{2800};
+    int falling_threshold{2500};
 };
 
 #endif

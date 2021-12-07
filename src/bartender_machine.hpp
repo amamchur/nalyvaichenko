@@ -4,12 +4,74 @@
 #include "./app_state.hpp"
 #include "./message.hpp"
 #include "./sector_detector.hpp"
+#include "./stepper_kinematics.hpp"
 #include "./tty_terminal.hpp"
 #include "./voice.hpp"
 
-#include <stdint.h>
+#include <cstdint>
 #include <zoal/gpio/pin_mode.hpp>
 #include <zoal/utils/scheduler.hpp>
+
+template<class Timer, class StepPinPwmChannel>
+class bartender_machine_v2 {
+public:
+    static constexpr EventBits_t event_stop = 1;
+
+    enum class state {
+        idle,
+
+    };
+
+    state state_;
+    stepper_kinematics<> sk;
+    sector_detector detector_;
+    zoal::freertos::event_group<zoal::freertos::freertos_allocation_type::static_mem> events;
+
+    void update_period() {
+        auto period = sk.period();
+        if (isinf(period)) {
+            stop();
+        } else {
+            motor_step_pwm_channel::set(static_cast<uint32_t>(period / 2));
+            motor_pwm_timer::TIMERx_CNT::ref() = 0;
+            motor_pwm_timer::TIMERx_ARR::ref() = static_cast<uint32_t>(period);
+            motor_pwm_timer::enable();
+        }
+    }
+
+    void start() {
+        sk.setup(32 * 200 * 2, 2000, 32 * 200);
+        motor_en::low();
+        motor_step_pwm_channel::connect();
+        update_period();
+        motor_pwm_timer::enable();
+    }
+
+    void stop() {
+        motor_en::high();
+        motor_pwm_timer::disable();
+        motor_step_pwm_channel::disconnect();
+    }
+
+    [[noreturn]] void main_task() {
+        while (true) {
+            auto e = events.wait(0xFF);
+            if ((e & event_stop) == event_stop) {
+//                tty_stream;
+            }
+        }
+    }
+
+    void handle_timer() {
+        sk.inc_step();
+        update_period();
+    }
+
+    void handle_adc() {
+        //        auto aaa = sensor_adc::read();
+        //        (void)aaa;
+    }
+};
 
 template<
     //

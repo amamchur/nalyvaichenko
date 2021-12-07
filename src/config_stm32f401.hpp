@@ -68,6 +68,18 @@ using stepper_b = mcu::pa_15;
 using stepper_c = mcu::pa_12;
 using stepper_d = mcu::pa_11;
 
+using motor_dir = mcu::pb_02;
+using motor_en = mcu::pb_10;
+using motor_step = mcu::pa_15;
+
+constexpr uint32_t pwm_divider = 84;
+constexpr uint32_t pwm_period = 2000;
+constexpr uint32_t micro_steps = 32;
+constexpr uint32_t steps_per_revolution = 200;
+
+using motor_pwm_timer = mcu::timer_02;
+using motor_step_pwm_channel = mcu::mux::pwm_channel<motor_pwm_timer, motor_step>;
+
 using pump_pwm_timer = mcu::timer_03;
 using sensor_adc = mcu::adc_01;
 

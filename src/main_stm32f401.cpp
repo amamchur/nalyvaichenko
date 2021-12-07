@@ -5,17 +5,24 @@
 #include "./logo/test_logo.hpp"
 #include "./message_processor.hpp"
 #include "./parsers/flash_machine.hpp"
+#include "./tty_terminal.hpp"
 #include "gpio.h"
 #include "stm32f4xx_hal.h"
 
 [[noreturn]] void zoal_main_task(void *);
 [[noreturn]] void zoal_scheduler_task(void *);
+[[noreturn]] void zoal_machine_task(void *);
 
 using task_type = zoal::freertos::task<zoal::freertos::freertos_allocation_type::static_mem>;
 __attribute__((unused)) zoal::mem::reserve_mem<task_type, 256, StackType_t> main_task(zoal_main_task, "main");
 __attribute__((unused)) zoal::mem::reserve_mem<task_type, 256, StackType_t> schedule_task(zoal_scheduler_task, "scheduler");
+__attribute__((unused)) zoal::mem::reserve_mem<task_type, 256, StackType_t> machine_task(zoal_machine_task, "machine");
 
 extern "C" void SystemClock_Config(void);
+
+[[noreturn]] void zoal_machine_task(void *) {
+    machine.main_task();
+}
 
 [[noreturn]] void zoal_scheduler_task(void *) {
     for (;;) {
@@ -91,7 +98,6 @@ void process_player_rx() {
         }
     } while (size == sizeof(rx_buffer));
 }
-
 
 [[noreturn]] void zoal_main_task(void *) {
     initialize_terminal();

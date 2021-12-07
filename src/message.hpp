@@ -51,7 +51,13 @@ enum class command_type {
     press,
 
     flash,
-    read_image_from_flash
+    read_image_from_flash,
+
+    enable_motor,
+    disable_motor,
+    direction_a,
+    direction_b,
+    rpm
 };
 
 class command {
@@ -76,11 +82,13 @@ public:
 };
 
 void send_message(message &msg);
+void send_message_isr(message &msg);
 void send_event(event_type type);
 void send_event(const event &cmd);
 void send_command(command_type type);
 void send_command(command_type type, int value);
 void send_command(const command &cmd);
+void send_command_isr(command_type type);
 bool pop_message(message &msg);
 
 #endif

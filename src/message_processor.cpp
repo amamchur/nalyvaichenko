@@ -1,7 +1,9 @@
 #include "message_processor.hpp"
 
+#include "config.hpp"
 #include "gui.hpp"
 #include "hardware.hpp"
+#include "tty_terminal.hpp"
 
 constexpr uint8_t fps = 30;
 constexpr uint32_t display_fresh_delay = 1000 / fps;
@@ -127,6 +129,30 @@ static void process_command(command &cmd) {
         w25q32::fast_read(cmd.value, &screen.buffer.canvas, sizeof(screen.buffer.canvas));
         screen.display();
         break;
+    case command_type::enable_motor:
+        machine.start();
+        break;
+    case command_type::disable_motor:
+        motor_pwm_timer::disable();
+        motor_en::high();
+        motor_step_pwm_channel::disconnect();
+        break;
+    case command_type::direction_a:
+        motor_dir::low();
+        break;
+    case command_type::direction_b:
+        motor_dir::high();
+        break;
+    case command_type::rpm: {
+        uint32_t period = apb2_clock_freq / pwm_divider / (steps_per_revolution * micro_steps * cmd.value / 60);
+        motor_step_pwm_channel::set(period / 2);
+        motor_pwm_timer::TIMERx_CNT::ref() = 0;
+        motor_pwm_timer::TIMERx_ARR::ref() = period;
+        tty_stream << "\r\n"
+                   << "Period: " << period << "\r\n";
+        terminal.sync();
+        break;
+    }
     default:
         break;
     }

@@ -3,7 +3,7 @@
 
 #include "settings.hpp"
 
-#include <stdint.h>
+#include <cstdint>
 #include <zoal/func/function.hpp>
 
 class app_state {

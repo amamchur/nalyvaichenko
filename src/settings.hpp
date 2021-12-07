@@ -1,8 +1,8 @@
 #ifndef NALYVAICHENKO_SETTINGS_HPP
 #define NALYVAICHENKO_SETTINGS_HPP
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 static constexpr size_t total_portions = 3;
 

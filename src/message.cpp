@@ -12,6 +12,11 @@ void send_message(message &msg) {
     event_manager::set(hardware_event_msg);
 }
 
+void send_message_isr(message &msg) {
+    message_queue.push_back(msg);
+    event_manager::set_isr(hardware_event_msg);
+}
+
 void send_event(event_type type) {
     message msg{};
     msg.type = message_type::event;
@@ -31,6 +36,13 @@ void send_command(command_type type) {
     msg.type = message_type::command;
     msg.c.type = type;
     send_message(msg);
+}
+
+void send_command_isr(command_type type) {
+    message msg{};
+    msg.type = message_type::command;
+    msg.c.type = type;
+    send_message_isr(msg);
 }
 
 void send_command(command_type type, int value) {

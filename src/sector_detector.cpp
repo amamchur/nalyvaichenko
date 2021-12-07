@@ -1,6 +1,6 @@
 #include "sector_detector.hpp"
 
-#include <stdlib.h>
+#include <cstdlib>
 
 detection_result sector_detector::handle(int value) {
     int d = value - prev_value;

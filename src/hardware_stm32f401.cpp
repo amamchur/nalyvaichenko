@@ -43,6 +43,14 @@ void initialize_hardware() {
     using adc_params = zoal::periph::adc_params<>;
     using adc_cfg = mcu::cfg::adc<sensor_adc, adc_params>;
 
+    using timer_params = zoal::periph::timer_params<
+        //
+        apb2_clock_freq,
+        pwm_divider,
+        pwm_period,
+        zoal::periph::timer_mode::up>;
+    using timer_cfg = mcu::cfg::timer<motor_pwm_timer, timer_params>;
+
     // Enable bus clock
     api::optimize<
         //
@@ -60,6 +68,8 @@ void initialize_hardware() {
         //
         adc_cfg::clock_on,
         //
+        timer_cfg::clock_on,
+        //
         mcu::port_a::clock_on_cas,
         mcu::port_b::clock_on_cas,
         mcu::port_c::clock_on_cas
@@ -67,7 +77,7 @@ void initialize_hardware() {
         >();
 
     // Disable peripherals before configuration
-    api::optimize<api::disable<tty_usart, i2c, oled_spi, flash_spi, sensor_adc>>();
+    api::optimize<api::disable<tty_usart, i2c, oled_spi, flash_spi, sensor_adc, motor_pwm_timer>>();
 
     api::optimize<
         //
@@ -83,22 +93,39 @@ void initialize_hardware() {
         oled_spi_mux::connect,
         oled_spi_cfg::apply,
         //
-        api::mode<zoal::gpio::pin_mode::output, flash_spi_cs, oled_cs, oled_ds, oled_res>,
-        api::high<flash_spi_cs, oled_cs>,
+        timer_cfg::apply,
+        //
+        api::mode<zoal::gpio::pin_mode::output,
+                  ///
+                  flash_spi_cs,
+                  oled_cs,
+                  oled_ds,
+                  oled_res,
+                  motor_dir,
+                  motor_en,
+                  motor_step>,
+        api::high<flash_spi_cs, oled_cs, motor_en, motor_step>,
+        api::low<motor_dir>,
         api::mode<zoal::gpio::pin_mode::input_pull_up, encoder_pin_a, encoder_pin_b, encoder_pin_btn>
-
         >();
+    motor_pwm_timer::TIMERx_CR1::ref() |= motor_pwm_timer::TIMERx_CR1_OPM;
+    motor_pwm_timer::TIMERx_DIER::ref() |= 1;
 
     // Enable peripherals after configuration
     api::optimize<api::enable<tty_usart, i2c, oled_spi, flash_spi, sensor_adc>>();
 
-    HAL_NVIC_SetPriority(USART1_IRQn, 5, 0);
+    HAL_NVIC_SetPriority(USART1_IRQn, 6, 0);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
-    HAL_NVIC_SetPriority(I2C1_EV_IRQn, 5, 0);
+    HAL_NVIC_SetPriority(I2C1_EV_IRQn, 7, 0);
     HAL_NVIC_EnableIRQ(I2C1_EV_IRQn);
-    HAL_NVIC_SetPriority(I2C1_ER_IRQn, 5, 0);
+    HAL_NVIC_SetPriority(I2C1_ER_IRQn, 7, 0);
     HAL_NVIC_EnableIRQ(I2C1_ER_IRQn);
+    HAL_NVIC_SetPriority(TIM2_IRQn, 8, 0);
+    HAL_NVIC_EnableIRQ(TIM2_IRQn);
+    HAL_NVIC_SetPriority(ADC_IRQn, 8, 0);
+    HAL_NVIC_EnableIRQ(ADC_IRQn);
 
+//    sensor_adc::enable_interrupt();
     tty_usart::enable_rx();
 
     zoal::utils::interrupts::on();
@@ -168,4 +195,16 @@ extern "C" void I2C1_ER_IRQHandler() {
         //
         event_manager::set_isr(hardware_event_i2c);
     });
+}
+
+bartender_machine_v2<motor_pwm_timer, motor_step_pwm_channel> machine;
+
+extern "C" void TIM2_IRQHandler(void) {
+    motor_pwm_timer::TIMERx_SR::ref() &= ~motor_pwm_timer::TIMERx_SR_UIF;
+    machine.handle_timer();
+}
+
+extern "C" void ADC_IRQHandler(void) {
+//    sensor_adc::ADCx_SR::ref() & sensor_adc::ADCx_SR_EOC;
+//    machine.handle_adc();
 }

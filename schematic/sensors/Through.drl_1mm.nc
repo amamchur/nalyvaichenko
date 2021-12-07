@@ -4,7 +4,7 @@
 (Type: G-code from Geometry)
 (Units: MM)
 
-(Created on Wednesday, 24 November 2021 at 13:51)
+(Created on Monday, 06 December 2021 at 08:13)
 
 (This preprocessor is used with a motion controller loaded with GRBL firmware.)
 (It is configured to be compatible with almost any version of GRBL firmware.)
@@ -32,6 +32,7 @@
 
 (Tools Offset: )
 (Tool: 2 -> Offset Z: 0.0)
+(Tool: 3 -> Offset Z: 0.0)
 
 (Z_MOVE: )
 (Tool: 1 -> Z_Move: 2)
@@ -63,7 +64,7 @@ M5
 G00 Z15.0000
 G00 X0.0000 Y0.0000                
 T2
-(MSG, Change to Tool Dia = 1.0008 ||| Total drills for tool T2 = 4)
+(MSG, Change to Tool Dia = 1.0008 ||| Total drills for tool T2 = 5)
 M0
 G00 Z15.0000
         
@@ -78,6 +79,10 @@ G01 Z-1.7000
 G01 Z0
 G00 Z2.0000
 G00 X9.9748 Y6.6675
+G01 Z-1.7000
+G01 Z0
+G00 Z2.0000
+G00 X22.1465 Y7.6200
 G01 Z-1.7000
 G01 Z0
 G00 Z2.0000
