@@ -5,16 +5,16 @@
     {
       "tag": 0,
       "file": "ecafe.png"
-    },
-    {
-      "tag": 1,
-      "file": "smile.png"
     }
   ],
   "animations": [
     {
+      "tag": 1,
+      "file": "smile.gif"
+    },
+    {
       "tag": 2,
-      "file": "smile.png"
+      "file": "drink.gif"
     }
   ]
 }

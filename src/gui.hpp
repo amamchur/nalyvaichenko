@@ -1,8 +1,9 @@
 #ifndef NALYVAICHENKO_GUI_HPP
 #define NALYVAICHENKO_GUI_HPP
 
-#include "app_state.hpp"
-#include "message.hpp"
+#include "./app_state.hpp"
+#include "./flash_struct.hpp"
+#include "./message.hpp"
 
 #include <zoal/gfx/glyph_renderer.hpp>
 
@@ -33,6 +34,7 @@ public:
     void process_event(event &e, gui &g) override;
     void render(gui &g) override;
     void activate(gui &g) override;
+
 protected:
     menu_item *current_{nullptr};
 
@@ -44,6 +46,7 @@ protected:
 class main_screen : public menu_screen {
 public:
     main_screen();
+
 private:
     static void stop_action(gui &, menu_item &item);
     static void go_action(gui &, menu_item &item);
@@ -73,12 +76,13 @@ public:
     int value{0};
     int min{0};
     int max{0};
-    zoal::func::function<sizeof(void*) * 8, void, int> callback;
+    zoal::func::function<sizeof(void *) * 8, void, int> callback;
 };
 
 class portions_screen : public menu_screen {
 public:
     portions_screen();
+
 private:
     static void back(gui &g, menu_item &);
     static void item_action(gui &g, menu_item &);
@@ -91,6 +95,7 @@ private:
 class portions_settings_screen : public menu_screen {
 public:
     portions_settings_screen();
+
 private:
     static void back(gui &g, menu_item &);
     static void edit_portions(gui &g, menu_item &);
@@ -103,6 +108,7 @@ private:
 class settings_screen : public menu_screen {
 public:
     settings_screen();
+
 private:
     static void back(gui &g, menu_item &);
     static void portions_settings(gui &g, menu_item &);
@@ -196,6 +202,19 @@ public:
     void render(gui &g) override;
 };
 
+class animation_screen : public dialog_screen {
+public:
+    void animation(uint32_t tag, int repeats = 1);
+    void render(gui &g) override;
+
+    zoal::func::function<sizeof(void *) * 8, void, animation_screen&> callback;
+private:
+    uint32_t tag_{0};
+    uint32_t frame_{0};
+    int repeats_{1};
+    flash_record record_{};
+};
+
 class gui : public event_handler {
 public:
     gui() noexcept;
@@ -218,16 +237,20 @@ public:
     adjustment_settings_screen adjustment_settings_screen_;
     edit_portion_screen edit_portion_screen_;
     portions_settings_screen portions_settings_screen_;
+    animation_screen animation_screen_;
 
-    void current_screen(abstract_screen *scr);
     inline abstract_screen *current_screen() const {
         return current_screen_;
     }
 
+    void push_screen(abstract_screen *scr);
+    abstract_screen *pop_screen();
 private:
+    int stack_size{0};
+    abstract_screen *screen_stack[5]{nullptr};
     abstract_screen *current_screen_{&menu_screen_};
 };
 
 extern gui user_interface;
 
-#endif //NALYVAICHENKO_GUI_HPP
+#endif

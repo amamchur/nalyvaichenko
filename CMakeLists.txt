@@ -132,7 +132,7 @@ set(STM32F401_FLASH_LD cubemx-proj/stm32f401/STM32F401CCUx_FLASH.ld)
 # End cubemx-proj variables
 
 add_mcu_executable(stm32f401 stm32
-        src/main_stm32f401.cpp
+        src/main.cpp
         src/terminal_input.cpp
         src/tty_terminal.cpp
         src/message.cpp

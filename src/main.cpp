@@ -23,10 +23,11 @@ extern "C" void SystemClock_Config(void);
 
 [[noreturn]] void zoal_scheduler_task(void *) {
     for (;;) {
-        vTaskDelay(1);
+        delay::ms(1);
         auto ms = counter::now();
-        bartender.handle(ms);
+
         general_scheduler.handle(ms);
+
         encoder.handle([](zoal::io::rotary_event e) {
             if (e == zoal::io::rotary_event::direction_1) {
                 send_event(event_type::encoder_ccw);
@@ -40,6 +41,26 @@ extern "C" void SystemClock_Config(void);
                 send_event(event_type::encoder_press);
             }
         });
+    }
+}
+
+static void flash_callback(flash_command_result r, uint32_t address, uint32_t size) {
+    switch (r) {
+    case flash_command_result::chip_erased:
+        tty_stream << "Chip erased"
+                   << "\r\n";
+        break;
+    case flash_command_result::sector_erased:
+        tty_stream << "Sector " << address << " erased"
+                   << "\r\n";
+        break;
+    case flash_command_result::page_programed:
+        tty_stream << "Written " << size << " bytes at " << address << "\r\n";
+        break;
+    case flash_command_result::finished:
+        tty_stream << "Finished\r\n";
+        terminal.sync();
+        break;
     }
 }
 
@@ -75,9 +96,13 @@ void process_player_rx() {
     screen.init();
 
     global_app_state.load_settings();
-    user_interface.current_screen(&user_interface.logo_screen_);
-    send_command(command_type::render_screen);
     fm.read_records();
+    fm.status_callback = flash_callback;
+
+    user_interface.push_screen(&user_interface.menu_screen_);
+    user_interface.push_screen(&user_interface.animation_screen_);
+    user_interface.animation_screen_.animation(2);
+    send_command(command_type::render_screen);
 
     for (;;) {
         auto events = event_manager::get();

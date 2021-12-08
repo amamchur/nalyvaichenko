@@ -41,6 +41,7 @@ enum class command_type {
     next_segment,
     render_screen,
     request_render_screen,
+    request_render_screen_ms,
     request_render_screen_500ms,
     play,
     logo,
@@ -57,7 +58,8 @@ enum class command_type {
     disable_motor,
     direction_a,
     direction_b,
-    rpm
+    rpm,
+    amin
 };
 
 class command {

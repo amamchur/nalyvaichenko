@@ -1,10 +1,10 @@
 #include "message_processor.hpp"
 
 #include "config.hpp"
+#include "flash_manager.hpp"
 #include "gui.hpp"
 #include "hardware.hpp"
 #include "tty_terminal.hpp"
-#include "flash_manager.hpp"
 
 constexpr uint8_t fps = 30;
 constexpr uint32_t display_fresh_delay = 1000 / fps;
@@ -80,6 +80,12 @@ static void process_command(command &cmd) {
             general_scheduler.schedule(0, display_fresh_delay, render_frame);
         }
         break;
+    case command_type::request_render_screen_ms:
+        if (!pending_refresh_frame) {
+            general_scheduler.remove(0);
+            general_scheduler.schedule(0, cmd.value, render_frame);
+        }
+        break;
     case command_type::request_render_screen_500ms:
         general_scheduler.schedule(0, 500, render_frame);
         break;
@@ -87,7 +93,7 @@ static void process_command(command &cmd) {
         player.enqueue_track(cmd.value);
         break;
     case command_type::logo:
-        user_interface.current_screen(&user_interface.logo_screen_);
+        user_interface.push_screen(&user_interface.logo_screen_);
         break;
     case command_type::rotate:
         bartender.rotate(cmd.value);
@@ -127,7 +133,7 @@ static void process_command(command &cmd) {
         tty_stream << "Flash Editor\r\n";
         break;
     case command_type::read_image_from_flash: {
-        fm.read_by_tag(cmd.value, &screen.buffer.canvas, sizeof(screen.buffer.canvas));
+        fm.read_frame(cmd.value, 0, &screen.buffer.canvas, sizeof(screen.buffer.canvas));
         screen.display();
         break;
     }
@@ -155,6 +161,11 @@ static void process_command(command &cmd) {
         terminal.sync();
         break;
     }
+    case command_type::amin:
+        user_interface.animation_screen_.animation(cmd.value);
+        user_interface.push_screen(&user_interface.animation_screen_);
+        send_command(command_type::render_screen);
+        break;
     default:
         break;
     }
@@ -163,7 +174,7 @@ static void process_command(command &cmd) {
 static void process_event(event &e) {
     switch (e.type) {
     case event_type::calibration_finished:
-        user_interface.current_screen(&user_interface.calibration_screen_);
+        user_interface.push_screen(&user_interface.calibration_screen_);
         break;
     default:
         user_interface.process_event(e);

@@ -16,10 +16,11 @@ void flash_manager::read_records() {
     }
 }
 
-size_t flash_manager::read_by_tag(uint32_t tag, void *buffer, size_t size) {
+size_t flash_manager::read_frame(uint32_t tag, uint32_t index, void *buffer, size_t size) {
     for (size_t i = 0; i < records_count; i++) {
         if (records[i].tag == tag) {
-            w25q32::fast_read(records[i].offset, buffer, size);
+            auto address = records[i].address + 1024 * index;
+            w25q32::fast_read(address, buffer, size);
             return size;
         }
     }
@@ -33,26 +34,43 @@ void flash_manager::process_command(const void *buffer, size_t size) {
 }
 
 flash_manager::flash_manager() noexcept {
-    machine.callback(callback);
+    machine.callback(parse_callback);
     machine.context = this;
 }
 
-void flash_manager::callback(zoal::misc::flash_machine *m, const zoal::misc::flash_cmd &cmd) {
+void flash_manager::parse_callback(zoal::misc::flash_machine *m, const zoal::misc::flash_cmd &cmd) {
+    auto me = reinterpret_cast<flash_manager *>(m->context);
     switch (cmd.type) {
     case zoal::misc::flash_cmd_type::erase_chip:
         w25q32::chip_erase();
+        me->status_callback(flash_command_result::chip_erased, 0, 0);
         break;
     case zoal::misc::flash_cmd_type::erase_sector:
         w25q32::sector_erase(cmd.address);
+        me->status_callback(flash_command_result::sector_erased, cmd.address, 0);
         break;
     case zoal::misc::flash_cmd_type::prog_mem:
         w25q32::page_program(cmd.address, cmd.data, cmd.size);
+        me->status_callback(flash_command_result::page_programed, cmd.address, cmd.size);
         break;
     case zoal::misc::flash_cmd_type::finish:
         reinterpret_cast<flash_manager *>(m->context)->read_records();
         global_app_state.flash_editor = false;
+        me->status_callback(flash_command_result::finished, 0, 0);
         break;
     default:
         break;
     }
 }
+
+bool flash_manager::get_record(uint32_t tag, flash_record &r) {
+    for (size_t i = 0; i < records_count; i++) {
+        if (records[i].tag == tag) {
+            r = records[i];
+            return true;
+        }
+    }
+    return false;
+}
+
+void flash_manager::null_callback(flash_command_result r, uint32_t address, uint32_t size) {}

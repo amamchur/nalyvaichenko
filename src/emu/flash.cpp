@@ -1,3 +1,4 @@
+#include "../flash_struct.hpp"
 #include "../parsers/flash_machine.hpp"
 
 #include <boost/endian.hpp>
@@ -17,19 +18,50 @@ size_t count = 0;
 
 using adapter = zoal::ic::sh1106_adapter_0<128, 64>;
 using graphics = zoal::gfx::renderer<uint8_t, adapter>;
-uint8_t canvas[1024];
+uint8_t canvas[adapter::buffer_size];
 
-void read_png(const char *file, void *b) {
+std::vector<flash_record> records;
+std::vector<uint8_t> data;
+
+static std::string file_content(const boost::filesystem::path &path) {
+    if (!boost::filesystem::is_regular_file(path)) {
+        return {};
+    }
+
+    std::ifstream file(path.string(), std::ios::in | std::ios::binary);
+    if (!file.is_open()) {
+        return {};
+    }
+
+    auto content = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    file.close();
+
+    return content;
+}
+
+void write_flash(std::ostream &ss, uint32_t data_address, const uint8_t *bytes, size_t data_size) {
+    auto address = data_address;
+    for (size_t i = 0; i < data_size; i++) {
+        if ((i & 0xFF) == 0) {
+            ss << std::dec << std::endl << "prog_mem " << address << " ";
+            address += 0x100;
+        }
+        uint8_t byte = bytes[i];
+        ss << std::hex << (int)(byte >> 4) << (int)(byte & 0xF);
+    }
+}
+
+bool read_png(const char *file, void *b) {
     FILE *fp = fopen(file, "rb");
     png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
     if (png == nullptr) {
-        return;
+        return false;
     }
 
     png_infop info = png_create_info_struct(png);
     if (info == nullptr) {
         png_destroy_read_struct(&png, nullptr, nullptr);
-        return;
+        return false;
     }
 
     png_init_io(png, fp);
@@ -68,57 +100,11 @@ void read_png(const char *file, void *b) {
     }
     free(row_pointers);
     png_destroy_read_struct(&png, &info, nullptr);
+
+    return true;
 }
 
-static std::string file_content(const boost::filesystem::path &path) {
-    if (!boost::filesystem::is_regular_file(path)) {
-        return {};
-    }
-
-    std::ifstream file(path.string(), std::ios::in | std::ios::binary);
-    if (!file.is_open()) {
-        return {};
-    }
-
-    auto content = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    file.close();
-
-    return content;
-}
-
-struct flash_animation {
-
-    uint32_t width;
-    uint32_t height;
-};
-
-struct flash_image {
-    uint32_t width;
-    uint32_t height;
-};
-
-struct flash_record {
-    uint32_t tag;
-    uint32_t offset;
-    uint32_t size;
-};
-
-std::vector<flash_record> records;
-std::vector<uint8_t> data;
-
-void write_flash(std::ostream &ss, uint32_t data_address, const uint8_t *bytes, size_t data_size) {
-    auto address = data_address;
-    for (size_t i = 0; i < data_size; i++) {
-        if ((i & 0xFF) == 0) {
-            ss << std::dec << std::endl << "prog_mem " << address << " ";
-            address += 0x100;
-        }
-        uint8_t byte = bytes[i];
-        ss << std::hex << (int)(byte >> 4) << (int)(byte & 0xF);
-    }
-}
-
-bool gif_read(const char *fileName) {
+bool read_gif(const char *fileName, void *b, uint32_t tag) {
     int error;
     GifFileType *gifFile = DGifOpenFileName(fileName, &error);
     if (!gifFile) {
@@ -131,40 +117,50 @@ bool gif_read(const char *fileName) {
         return false;
     }
 
-    ColorMapObject *commonMap = gifFile->SColorMap;
-    std::cout << fileName << ": " << gifFile->SWidth << "x" << gifFile->SHeight << std::endl;
+    std::cout << fileName << ": " << gifFile->SWidth << "x" << gifFile->SHeight << " frames:" << gifFile->ImageCount << std::endl;
 
+    flash_record r{};
+    r.tag = tag;
+    r.address = data.size();
+    r.size = sizeof(canvas);
+    r.type = record_type_animation;
+    r.animation.frames = gifFile->ImageCount;
+    records.emplace_back(r);
+
+    ColorMapObject *commonMap = gifFile->SColorMap;
     for (int i = 0; i < gifFile->ImageCount; ++i) {
         const SavedImage &saved = gifFile->SavedImages[i];
         const GifImageDesc &desc = saved.ImageDesc;
         const ColorMapObject *colorMap = desc.ColorMap ? desc.ColorMap : commonMap;
-        std::cout << "[" << i << "] " << desc.Width << "x" << desc.Height << "+" << desc.Left << "," << desc.Top
-                  << ", has local colorMap: " << (desc.ColorMap ? "Yes" : "No") << std::endl;
+        if (colorMap == nullptr) {
+            continue;
+        }
 
-//        std::stringstream ss;
-//        for (int v = 0; v < desc.Height; ++v) {
-//            for (int u = 0; u < desc.Width; ++u) {
-//                int c = saved.RasterBits[v * desc.Width + u];
-//                printf(" %02X", c);
-//                if (colorMap) {
-//                    GifColorType rgb = colorMap->Colors[c];
-//                    ss << " [" << (int)rgb.Red << "," << (int)rgb.Green << "," << (int)rgb.Blue << "]";
-//                }
-//            }
-//            std::cout << ":" << ss.str() << std::endl;
-//        }
+        GraphicsControlBlock GCB;
+        DGifSavedExtensionToGCB(gifFile, i, &GCB);
+
+        std::cout << "[" << i << "] " << desc.Width << "x" << desc.Height << "+" << desc.Left << "," << desc.Top
+                  << ", has local colorMap: " << (desc.ColorMap ? "Yes" : "No") << " DelayTime: " << GCB.DelayTime << std::endl;
+        auto gfx = graphics::from_memory(b);
+        gfx->clear(0);
+
+        int dx = (128 - gifFile->SWidth) / 2;
+        int dy = (64 - gifFile->SHeight) / 2;
+        for (int y = 0; y < desc.Height; ++y) {
+            for (int x = 0; x < desc.Width; ++x) {
+                int color = saved.RasterBits[y * desc.Width + x];
+                GifColorType rgb = colorMap->Colors[color];
+                if (rgb.Red < 127 || rgb.Green < 127 || rgb.Blue < 127) {
+                    gfx->pixel(dx + x, dy + y, 1);
+                }
+            }
+        }
+
+        data.insert(data.end(), canvas, canvas + sizeof(canvas));
     }
 
     DGifCloseFile(gifFile, &error);
     return true;
-}
-
-int main__(int argc, char *argv[]) {
-    boost::filesystem::path path(boost::filesystem::current_path());
-    path /= "flash";
-    boost::filesystem::path json_file = path / "feed.gif";
-    gif_read(json_file.string().c_str());
-    return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -176,6 +172,7 @@ int main(int argc, char *argv[]) {
         auto json = file_content(json_file);
         auto value = boost::json::parse(json);
         auto images = value.as_object()["images"].as_array();
+        auto animations = value.as_object()["animations"].as_array();
         auto records_sector = value.as_object()["records_sector"].as_int64();
         auto data_sector = value.as_object()["data_sector"].as_int64();
         auto records_address = records_sector << 12;
@@ -189,25 +186,45 @@ int main(int argc, char *argv[]) {
 
             flash_record r{};
             r.tag = tag;
-            r.offset = data.size();
+            r.address = data.size();
             r.size = sizeof(canvas);
             data.insert(data.end(), canvas, canvas + sizeof(canvas));
+            records.emplace_back(r);
+        }
 
-            std::cout << "v: " << img_file << std::endl;
+        for (auto &anim : animations) {
+            auto tag = anim.as_object()["tag"].as_int64();
+            auto file = anim.as_object()["file"].as_string();
+            boost::filesystem::path img_file = path / file.c_str();
+            read_gif(img_file.string().c_str(), canvas, tag);
 
+            flash_record r{};
+            r.tag = tag;
+            r.address = data.size();
+            r.size = sizeof(canvas);
+            data.insert(data.end(), canvas, canvas + sizeof(canvas));
             records.emplace_back(r);
         }
 
         for (auto &r : records) {
-            r.offset += data_address;
+            auto type = r.type;
+            r.address += data_address;
             r.tag = boost::endian::native_to_little(r.tag);
-            r.offset = boost::endian::native_to_little(r.offset);
+            r.address = boost::endian::native_to_little(r.address);
             r.size = boost::endian::native_to_little(r.size);
+            r.type = boost::endian::native_to_little(r.type);
+            switch (type) {
+            case record_type_animation:
+                r.animation.frames = boost::endian::native_to_little(r.animation.frames);
+                break;
+            default:
+                break;
+            }
         }
         {
             flash_record r{};
             r.tag = 0xFFFFFFFF;
-            r.offset = 0xFFFFFFFF;
+            r.address = 0xFFFFFFFF;
             r.size = 0xFFFFFFFF;
             records.emplace_back(r);
         }
@@ -235,9 +252,6 @@ int main(int argc, char *argv[]) {
         file.open(flash_file.c_str(), std::fstream::out | std::fstream::trunc);
         file << str;
         file.close();
-
-        std::cout << str;
-
     } catch (std::exception &e) {
         std::cerr << "ERROR: " << e.what() << std::endl;
         return 1;

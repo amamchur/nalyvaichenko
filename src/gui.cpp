@@ -166,13 +166,27 @@ void gui::process_event(event &e) {
         current_screen_->process_event(e, *this);
     }
 }
-void gui::current_screen(abstract_screen *scr) {
+
+gui::gui() noexcept = default;
+
+void gui::push_screen(abstract_screen *scr) {
+    screen_stack[stack_size++] = scr;
     current_screen_ = scr;
     current_screen_->activate(*this);
     send_command(command_type::request_render_screen);
-}
+};
 
-gui::gui() noexcept {};
+abstract_screen *gui::pop_screen() {
+    abstract_screen *scr = screen_stack[stack_size - 1];
+    if (stack_size > 0) {
+        stack_size--;
+        current_screen_ = screen_stack[stack_size - 1];
+        current_screen_->activate(*this);
+        send_command(command_type::request_render_screen);
+    }
+
+    return scr;
+}
 
 main_screen::main_screen()
     : menu_item_stop(text_stop, stop_action)
@@ -204,7 +218,7 @@ void main_screen::pump_liquid(gui &, menu_item &) {
 }
 
 void main_screen::settings_action(gui &g, menu_item &parent) {
-    g.current_screen(&g.settings_screen_);
+    g.push_screen(&g.settings_screen_);
 }
 
 void main_screen::stop_action(gui &, menu_item &parent) {
@@ -212,7 +226,7 @@ void main_screen::stop_action(gui &, menu_item &parent) {
 }
 
 void main_screen::portions(gui &g, menu_item &parent) {
-    g.current_screen(&g.portions_screen_);
+    g.push_screen(&g.portions_screen_);
 }
 
 void main_screen::activate(gui &g) {
@@ -235,7 +249,7 @@ void ir_settings_screen::process_event(event &e, gui &gui) {
         auto current = gui.current_screen();
         switch (menu_item_index) {
         case 0:
-            gui.current_screen(&gui.settings_screen_);
+            gui.push_screen(&gui.settings_screen_);
             break;
         case 1:
             gui.input_int_screen_.value = rs.ir_max_value_;
@@ -243,13 +257,13 @@ void ir_settings_screen::process_event(event &e, gui &gui) {
             gui.input_int_screen_.max = 1023;
             gui.input_int_screen_.title_progmem = text_max;
             gui.input_int_screen_.suffix_progmem = nullptr;
-            gui.input_int_screen_.callback = [&gui, &rs, current](int v) {
+            gui.input_int_screen_.callback = [&gui, &rs](int v) {
                 rs.ir_max_value_ = v;
                 global_app_state.save_settings();
 
-                gui.current_screen(current);
+                gui.pop_screen();
             };
-            gui.current_screen(&gui.input_int_screen_);
+            gui.push_screen(&gui.input_int_screen_);
             break;
         case 2:
             gui.input_int_screen_.value = rs.ir_min_value_;
@@ -257,13 +271,13 @@ void ir_settings_screen::process_event(event &e, gui &gui) {
             gui.input_int_screen_.max = 1023;
             gui.input_int_screen_.title_progmem = text_max;
             gui.input_int_screen_.suffix_progmem = nullptr;
-            gui.input_int_screen_.callback = [&gui, &rs, current](int v) {
+            gui.input_int_screen_.callback = [&gui, &rs](int v) {
                 rs.ir_min_value_ = v;
                 global_app_state.save_settings();
 
-                gui.current_screen(current);
+                gui.pop_screen();
             };
-            gui.current_screen(&gui.input_int_screen_);
+            gui.push_screen(&gui.input_int_screen_);
             break;
         default:
             break;
@@ -358,7 +372,7 @@ void input_int_screen::render(gui &g) {
 void input_int_screen::activate(gui &g) {}
 
 void logo_screen::render(gui &g) {
-    fm.read_by_tag(flash_resource::logo, screen.buffer.canvas, sizeof(screen.buffer.canvas));
+    fm.read_frame(flash_resource::logo, 0, screen.buffer.canvas, sizeof(screen.buffer.canvas));
 }
 
 void calibration_screen::render(gui &g) {
@@ -393,7 +407,7 @@ void calibration_screen::render(gui &g) {
 void dialog_screen::process_event(event &e, gui &g) {
     switch (e.type) {
     case event_type::encoder_press:
-        g.current_screen(&g.menu_screen_);
+        g.pop_screen();
         break;
     default:
         break;
@@ -424,31 +438,31 @@ void sensor_screen::render(gui &g) {
 }
 
 void settings_screen::back(gui &g, menu_item &) {
-    g.current_screen(&g.menu_screen_);
+    g.push_screen(&g.menu_screen_);
 }
 
 void settings_screen::ir_settings(gui &g, menu_item &) {
-    g.current_screen(&g.ir_settings_screen_);
+    g.push_screen(&g.ir_settings_screen_);
 }
 
 void settings_screen::adjustment_settings(gui &g, menu_item &) {
-    g.current_screen(&g.adjustment_settings_screen_);
+    g.push_screen(&g.adjustment_settings_screen_);
 }
 
 void settings_screen::sector_settings(gui &g, menu_item &) {
-    g.current_screen(&g.sector_settings_screen_);
+    g.push_screen(&g.sector_settings_screen_);
 }
 
 void settings_screen::power_settings(gui &g, menu_item &) {
-    g.current_screen(&g.power_screen_);
+    g.push_screen(&g.power_screen_);
 }
 
 void settings_screen::portions_settings(gui &g, menu_item &) {
-    g.current_screen(&g.portions_settings_screen_);
+    g.push_screen(&g.portions_settings_screen_);
 }
 
 void settings_screen::sensors_setting(gui &g, menu_item &) {
-    g.current_screen(&g.sensor_screen_);
+    g.push_screen(&g.sensor_screen_);
 }
 
 settings_screen::settings_screen()
@@ -536,7 +550,7 @@ void sector_settings_screen::process_event(event &e, gui &gui) {
         auto current = gui.current_screen();
         switch (menu_item_index) {
         case 0:
-            gui.current_screen(&gui.settings_screen_);
+            gui.push_screen(&gui.settings_screen_);
             break;
         case 1:
             gui.input_int_screen_.value = global_app_state.settings.hall_rising_threshold_;
@@ -544,13 +558,13 @@ void sector_settings_screen::process_event(event &e, gui &gui) {
             gui.input_int_screen_.max = 4095;
             gui.input_int_screen_.title_progmem = text_sector_a;
             gui.input_int_screen_.suffix_progmem = nullptr;
-            gui.input_int_screen_.callback = [&gui, current](int v) {
+            gui.input_int_screen_.callback = [&gui](int v) {
                 global_app_state.settings.hall_rising_threshold_ = v;
                 global_app_state.save_settings();
 
-                gui.current_screen(current);
+                gui.pop_screen();
             };
-            gui.current_screen(&gui.input_int_screen_);
+            gui.push_screen(&gui.input_int_screen_);
             break;
         case 2:
             gui.input_int_screen_.value = global_app_state.settings.hall_falling_threshold_;
@@ -558,13 +572,13 @@ void sector_settings_screen::process_event(event &e, gui &gui) {
             gui.input_int_screen_.max = 4095;
             gui.input_int_screen_.title_progmem = text_sector_b;
             gui.input_int_screen_.suffix_progmem = nullptr;
-            gui.input_int_screen_.callback = [&gui, current](int v) {
+            gui.input_int_screen_.callback = [&gui](int v) {
                 global_app_state.settings.hall_falling_threshold_ = v;
                 global_app_state.save_settings();
 
-                gui.current_screen(current);
+                gui.pop_screen();
             };
-            gui.current_screen(&gui.input_int_screen_);
+            gui.push_screen(&gui.input_int_screen_);
             break;
         default:
             break;
@@ -633,7 +647,7 @@ edit_portion_screen::edit_portion_screen()
 }
 
 void edit_portion_screen::back_action(gui &g, menu_item &) {
-    g.current_screen(&g.settings_screen_);
+    g.push_screen(&g.settings_screen_);
 }
 
 void edit_portion_screen::edit_weight(gui &g, menu_item &) {
@@ -650,9 +664,9 @@ void edit_portion_screen::edit_weight(gui &g, menu_item &) {
         ps.mg_ = v;
         global_app_state.save_settings();
 
-        g.current_screen(&g.edit_portion_screen_);
+        g.pop_screen();
     };
-    g.current_screen(&g.input_int_screen_);
+    g.push_screen(&g.input_int_screen_);
 }
 
 void edit_portion_screen::edit_time(gui &g, menu_item &) {
@@ -668,10 +682,9 @@ void edit_portion_screen::edit_time(gui &g, menu_item &) {
     g.input_int_screen_.callback = [&g, &ps](int v) {
         ps.time_ = v;
         global_app_state.save_settings();
-
-        g.current_screen(&g.edit_portion_screen_);
+        g.pop_screen();
     };
-    g.current_screen(&g.input_int_screen_);
+    g.push_screen(&g.input_int_screen_);
 }
 
 void edit_portion_screen::test_portion(gui &g, menu_item &) {
@@ -696,10 +709,9 @@ void adjustment_settings_screen::process_event(event &e, gui &gui) {
         menu_item_index--;
         break;
     case event_type::encoder_press: {
-        auto current = gui.current_screen();
         switch (menu_item_index) {
         case 0:
-            gui.current_screen(&gui.settings_screen_);
+            gui.pop_screen();
             break;
         case 1:
             gui.input_int_screen_.value = rs.sector_adjustment_;
@@ -707,13 +719,13 @@ void adjustment_settings_screen::process_event(event &e, gui &gui) {
             gui.input_int_screen_.max = 50;
             gui.input_int_screen_.title_progmem = text_adjustment;
             gui.input_int_screen_.suffix_progmem = nullptr;
-            gui.input_int_screen_.callback = [&gui, &rs, current](int v) {
+            gui.input_int_screen_.callback = [&gui, &rs](int v) {
                 rs.sector_adjustment_ = v;
                 global_app_state.save_settings();
 
-                gui.current_screen(current);
+                gui.pop_screen();
             };
-            gui.current_screen(&gui.input_int_screen_);
+            gui.push_screen(&gui.input_int_screen_);
             break;
         default:
             break;
@@ -768,7 +780,7 @@ void power_screen::process_event(event &e, gui &gui) {
         auto current = gui.current_screen();
         switch (menu_item_index) {
         case 0:
-            gui.current_screen(&gui.settings_screen_);
+            gui.pop_screen();
             break;
         case 1:
             gui.input_int_screen_.value = power;
@@ -780,9 +792,9 @@ void power_screen::process_event(event &e, gui &gui) {
                 power = v;
                 global_app_state.save_settings();
 
-                gui.current_screen(current);
+                gui.pop_screen();
             };
-            gui.current_screen(&gui.input_int_screen_);
+            gui.push_screen(&gui.input_int_screen_);
             break;
         default:
             break;
@@ -840,7 +852,7 @@ portions_screen::portions_screen()
 }
 
 void portions_screen::back(gui &g, menu_item &) {
-    g.current_screen(&g.menu_screen_);
+    g.pop_screen();
 }
 
 void portions_screen::item_action(gui &g, menu_item &item) {
@@ -857,7 +869,7 @@ void portions_screen::item_action(gui &g, menu_item &item) {
     if (index >= 0) {
         s.current_portion_ = index;
         global_app_state.save_settings();
-        g.current_screen(&g.menu_screen_);
+        g.pop_screen();
     }
 }
 
@@ -885,7 +897,7 @@ portions_settings_screen::portions_settings_screen()
 }
 
 void portions_settings_screen::back(gui &g, menu_item &) {
-    g.current_screen(&g.menu_screen_);
+    g.pop_screen();
 }
 
 void portions_settings_screen::activate(gui &g) {
@@ -907,6 +919,36 @@ void portions_settings_screen::edit_portions(gui &g, menu_item &item) {
 
     if (index >= 0) {
         g.edit_portion_screen_.portion = index;
-        g.current_screen(&g.edit_portion_screen_);
+        g.push_screen(&g.edit_portion_screen_);
     }
+}
+
+void animation_screen::render(gui &g) {
+    fm.read_frame(tag_, frame_, screen.buffer.canvas, sizeof(screen.buffer.canvas));
+    screen.display();
+
+    frame_++;
+    if (frame_ >= record_.animation.frames) {
+        frame_ = 0;
+        if (repeats_ > 0) {
+            repeats_--;
+        }
+    }
+
+    if (repeats_ == 0) {
+        if (callback) {
+            callback(*this);
+        } else {
+            g.pop_screen();
+        }
+    } else {
+        send_command(command_type::request_render_screen_ms, 30);
+    }
+}
+
+void animation_screen::animation(uint32_t tag, int repeats) {
+    this->tag_ = tag;
+    this->repeats_ = repeats;
+    this->frame_ = 0;
+    fm.get_record(tag, record_);
 }
