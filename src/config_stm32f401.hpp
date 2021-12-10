@@ -61,11 +61,6 @@ using ir_sensor = mcu::pa_01;
 using start_signal = mcu::pc_14;
 using stop_signal = mcu::pc_15;
 
-using stepper_a = mcu::pb_03;
-using stepper_b = mcu::pa_15;
-using stepper_c = mcu::pa_12;
-using stepper_d = mcu::pa_11;
-
 using motor_dir = mcu::pb_02;
 using motor_en = mcu::pb_10;
 using motor_step = mcu::pa_15;

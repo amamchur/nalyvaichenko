@@ -22,18 +22,6 @@ extern zoal::utils::i2c_scanner scanner;
 
 extern oled_type screen;
 
-using stepper_type = zoal::io::stepper_28byj<stepper_a, stepper_b, stepper_c, stepper_d, 8>;
-using bartender_machine_type = bartender_machine<
-    //
-    counter::value_type,
-    stepper_type,
-    pump_signal,
-    pump_pwm_channel,
-    valve_signal,
-    hall_channel,
-    ir_channel>;
-extern bartender_machine_type bartender;
-
 using encoder_button_config = zoal::io::button_config<true, 20, 500, 50>;
 using button_config = zoal::io::button_config<true, 20, 500, 0>;
 

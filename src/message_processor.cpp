@@ -49,27 +49,27 @@ static void process_command(command &cmd) {
     }
     case command_type::calibrate:
         player.enqueue_track(voice::calibration);
-        bartender.calibrate();
+//        bartender.calibrate();
         send_event(event_type::calibration_started);
         send_command(command_type::render_screen);
         break;
     case command_type::stop:
-        bartender.stop_machine();
+//        bartender.stop_machine();
         break;
     case command_type::go:
-        bartender.start();
+//        bartender.start();
         break;
     case command_type::scan_i2c:
         scan_i2c();
         break;
     case command_type::pump:
-        bartender.pump(cmd.value);
+//        bartender.pump(cmd.value);
         break;
     case command_type::valve:
-        bartender.valve(cmd.value);
+//        bartender.valve(cmd.value);
         break;
     case command_type::next_segment:
-        bartender.next_segment();
+//        bartender.next_segment();
         break;
     case command_type::render_screen:
         render_frame();
@@ -96,7 +96,7 @@ static void process_command(command &cmd) {
         user_interface.push_screen(&user_interface.logo_screen_);
         break;
     case command_type::rotate:
-        bartender.rotate(cmd.value);
+//        bartender.rotate(cmd.value);
         break;
     case command_type::settings: {
         auto &s = global_app_state.settings;
@@ -178,7 +178,7 @@ static void process_event(event &e) {
         break;
     default:
         user_interface.process_event(e);
-        bartender.process_event(e);
+//        bartender.process_event(e);
         break;
     }
 }

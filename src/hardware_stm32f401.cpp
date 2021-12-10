@@ -13,7 +13,6 @@ zoal::periph::i2c_request &request = i2c_req_dispatcher.request;
 zoal::utils::i2c_scanner scanner;
 oled_type screen;
 
-bartender_machine_type bartender;
 encoder_type encoder;
 start_button_type start_button;
 stop_button_type stop_button;
@@ -81,6 +80,19 @@ void initialize_hardware() {
 
     api::optimize<
         //
+        api::mode<zoal::gpio::pin_mode::output,
+                  ///
+                  flash_spi_cs,
+                  oled_cs,
+                  oled_ds,
+                  oled_res,
+                  motor_dir,
+                  motor_en,
+                  motor_step>,
+        api::high<flash_spi_cs, oled_cs, motor_en, motor_step>,
+        api::low<motor_dir>,
+        api::mode<zoal::gpio::pin_mode::input_pull_up, encoder_pin_a, encoder_pin_b, encoder_pin_btn>,
+        //
         tty_usart_mux::connect,
         tty_usart_cfg::apply,
         //
@@ -93,20 +105,7 @@ void initialize_hardware() {
         oled_spi_mux::connect,
         oled_spi_cfg::apply,
         //
-        timer_cfg::apply,
-        //
-        api::mode<zoal::gpio::pin_mode::output,
-                  ///
-                  flash_spi_cs,
-                  oled_cs,
-                  oled_ds,
-                  oled_res,
-                  motor_dir,
-                  motor_en,
-                  motor_step>,
-        api::high<flash_spi_cs, oled_cs, motor_en, motor_step>,
-        api::low<motor_dir>,
-        api::mode<zoal::gpio::pin_mode::input_pull_up, encoder_pin_a, encoder_pin_b, encoder_pin_btn>
+        timer_cfg::apply
         >();
     motor_pwm_timer::TIMERx_CR1::ref() |= motor_pwm_timer::TIMERx_CR1_OPM;
     motor_pwm_timer::TIMERx_DIER::ref() |= 1;
