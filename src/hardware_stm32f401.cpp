@@ -9,6 +9,7 @@ zoal::mem::reserve_mem<usart_stream_type, 32> player_rx_stream(1);
 zoal::mem::reserve_mem<usart_stream_type, 32> player_tx_stream(1);
 
 i2c_req_dispatcher_type i2c_req_dispatcher;
+
 zoal::periph::i2c_request &request = i2c_req_dispatcher.request;
 zoal::utils::i2c_scanner scanner;
 oled_type screen;
@@ -80,19 +81,6 @@ void initialize_hardware() {
 
     api::optimize<
         //
-        api::mode<zoal::gpio::pin_mode::output,
-                  ///
-                  flash_spi_cs,
-                  oled_cs,
-                  oled_ds,
-                  oled_res,
-                  motor_dir,
-                  motor_en,
-                  motor_step>,
-        api::high<flash_spi_cs, oled_cs, motor_en, motor_step>,
-        api::low<motor_dir>,
-        api::mode<zoal::gpio::pin_mode::input_pull_up, encoder_pin_a, encoder_pin_b, encoder_pin_btn>,
-        //
         tty_usart_mux::connect,
         tty_usart_cfg::apply,
         //
@@ -105,10 +93,26 @@ void initialize_hardware() {
         oled_spi_mux::connect,
         oled_spi_cfg::apply,
         //
-        timer_cfg::apply
+        timer_cfg::apply,
+        zoal::ct::type_list<
+            //
+            motor_pwm_timer::TIMERx_CR1::template cas<0, motor_pwm_timer::TIMERx_CR1_OPM>,
+            motor_pwm_timer::TIMERx_DIER::template cas<0, motor_pwm_timer::TIMERx_DIER_UIE>>,
+        //
+        api::mode<zoal::gpio::pin_mode::output,
+                  ///
+                  flash_spi_cs,
+                  oled_cs,
+                  oled_ds,
+                  oled_res,
+                  motor_dir,
+                  motor_en,
+                  motor_step>,
+        api::high<flash_spi_cs, oled_cs, motor_en, motor_step>,
+        api::low<motor_dir>,
+        api::mode<zoal::gpio::pin_mode::input_pull_up, encoder_pin_a, encoder_pin_b, encoder_pin_btn>
+        //
         >();
-    motor_pwm_timer::TIMERx_CR1::ref() |= motor_pwm_timer::TIMERx_CR1_OPM;
-    motor_pwm_timer::TIMERx_DIER::ref() |= 1;
 
     // Enable peripherals after configuration
     api::optimize<api::enable<tty_usart, i2c, oled_spi, flash_spi, sensor_adc>>();
@@ -124,7 +128,7 @@ void initialize_hardware() {
     HAL_NVIC_SetPriority(ADC_IRQn, 8, 0);
     HAL_NVIC_EnableIRQ(ADC_IRQn);
 
-//    sensor_adc::enable_interrupt();
+    sensor_adc::enable_interrupt();
     tty_usart::enable_rx();
 
     zoal::utils::interrupts::on();
@@ -204,6 +208,6 @@ extern "C" void TIM2_IRQHandler(void) {
 }
 
 extern "C" void ADC_IRQHandler(void) {
-//    sensor_adc::ADCx_SR::ref() & sensor_adc::ADCx_SR_EOC;
-//    machine.handle_adc();
+    zoal::periph::adc_dispatcher<sensor_adc>::api.complete(sensor_adc::value());
+    event_manager::set_isr(hardware_event_adc);
 }

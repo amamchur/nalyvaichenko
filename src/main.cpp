@@ -115,6 +115,10 @@ void process_player_rx() {
         if (events & hardware_event_i2c) {
             i2c_req_dispatcher.handle();
         }
+        if (events & hardware_event_adc) {
+            zoal::periph::adc_dispatcher<sensor_adc>::api.handle();
+//            adc_req_dispatcher.handle();
+        }
         if (events & hardware_event_msg) {
             process_message();
         }

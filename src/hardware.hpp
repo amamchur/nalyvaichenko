@@ -12,11 +12,16 @@
 #include <zoal/io/button.hpp>
 #include <zoal/io/rotary_encoder.hpp>
 #include <zoal/io/stepper_28byj.hpp>
+#include <zoal/periph/adc_request_dispatcher.hpp>
 #include <zoal/periph/i2c.hpp>
 #include <zoal/periph/i2c_request_dispatcher.hpp>
 #include <zoal/utils/i2c_scanner.hpp>
 
+template<>
+class zoal::periph::adc_dispatcher<sensor_adc> : public zoal::periph::adc_dispatcher_base<sensor_adc, sizeof(void *) * 4> {};
+
 using i2c_req_dispatcher_type = zoal::periph::i2c_request_dispatcher<i2c, sizeof(void *) * 4>;
+
 extern i2c_req_dispatcher_type i2c_req_dispatcher;
 extern zoal::utils::i2c_scanner scanner;
 
