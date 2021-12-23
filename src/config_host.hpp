@@ -31,8 +31,8 @@ using tty_usart_rx = mcu::pb_07;
 using tty_usart_tx = mcu::pb_06;
 
 using oled_spi = mcu::spi_02;
-using oled_mosi = mcu::pb_14;
-using oled_miso = mcu::pb_15;
+using oled_miso = mcu::pb_14;
+using oled_mosi = mcu::pb_15;
 using oled_sck = mcu::pb_13;
 using oled_cs = mcu::pa_10;
 using oled_ds = mcu::pa_09;

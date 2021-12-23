@@ -37,7 +37,7 @@ void initialize_hardware() {
     using flash_spi_cfg = mcu::cfg::spi<flash_spi, flash_spi_params>;
 
     using oled_spi_params = zoal::periph::spi_params<apb2_clock_freq>;
-    using oled_spi_mux = mcu::mux::spi<oled_spi, oled_mosi, oled_miso, oled_sck>;
+    using oled_spi_mux = mcu::mux::spi<oled_spi, oled_miso, oled_mosi, oled_sck>;
     using oled_spi_cfg = mcu::cfg::spi<oled_spi, oled_spi_params>;
 
     using adc_params = zoal::periph::adc_params<>;
