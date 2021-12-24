@@ -48,14 +48,10 @@ static void process_command(command &cmd) {
         terminal.sync();
         break;
     case command_type::show_adc: {
-        hall_channel::fetch([](uint16_t hall) {
-            ir_channel::fetch([hall](uint16_t ir) {
-                tty_stream << "\033[2K\r";
-                tty_stream << "hall:\t" << hall << "\r\n";
-                tty_stream << "ir:\t" << ir << "\r\n";
-                terminal.sync();
-            });
-        });
+        tty_stream << "\033[2K\r";
+        tty_stream << "hall:\t" << sensors_values[0] << "\r\n";
+        tty_stream << "ir:\t" << sensors_values[1] << "\r\n";
+        terminal.sync();
         break;
     }
     case command_type::calibrate:
@@ -68,7 +64,7 @@ static void process_command(command &cmd) {
         //        bartender.stop_machine();
         break;
     case command_type::go:
-        //        bartender.start();
+        machine.go();
         break;
     case command_type::scan_i2c:
         scan_i2c();
@@ -80,7 +76,7 @@ static void process_command(command &cmd) {
         //        bartender.valve(cmd.value);
         break;
     case command_type::next_segment:
-        //        bartender.next_segment();
+        machine.push_find_segment();
         break;
     case command_type::render_screen:
         render_frame();
@@ -149,12 +145,10 @@ static void process_command(command &cmd) {
         break;
     }
     case command_type::enable_motor:
-        machine.start();
+        machine.motor_test();
         break;
     case command_type::disable_motor:
-        motor_pwm_timer::disable();
-        motor_en::high();
-        motor_step_pwm_channel::disconnect();
+        machine.stop();
         break;
     case command_type::direction_a:
         motor_dir::low();
@@ -163,16 +157,11 @@ static void process_command(command &cmd) {
         motor_dir::high();
         break;
     case command_type::rpm: {
-        uint32_t period = apb2_clock_freq / pwm_divider / (steps_per_revolution * micro_steps * cmd.value / 60);
-        motor_step_pwm_channel::set(period / 2);
-        motor_pwm_timer::TIMERx_CNT::ref() = 0;
-        motor_pwm_timer::TIMERx_ARR::ref() = period;
-        tty_stream << "\r\n"
-                   << "Period: " << period << "\r\n";
+        machine.rpm(cmd.value);
         terminal.sync();
         break;
     }
-    case command_type::amin:
+    case command_type::anim:
         user_interface.animation_screen_.animation(cmd.value);
         user_interface.push_screen(&user_interface.animation_screen_);
         send_command(command_type::render_screen);
@@ -189,7 +178,7 @@ static void process_event(event &e) {
         break;
     default:
         user_interface.process_event(e);
-        //        bartender.process_event(e);
+        machine.process_event(e);
         break;
     }
 }

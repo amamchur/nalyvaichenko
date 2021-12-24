@@ -59,7 +59,7 @@ enum class command_type {
     direction_a,
     direction_b,
     rpm,
-    amin
+    anim
 };
 
 class command {

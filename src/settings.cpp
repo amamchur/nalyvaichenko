@@ -10,8 +10,8 @@ const settings_type default_settings = {
     magic_number,
     6,
     80,
-    850,
-    600,
+    2500,
+    3100,
     0,
     {// portion_settings
      {25, 710},

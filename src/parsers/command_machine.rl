@@ -49,7 +49,7 @@
     cmd_dira = ('dira') %{ this->command_ = command_type::direction_a; };
     cmd_dirb = ('dirb') %{ this->command_ = command_type::direction_b; };
     cmd_rpm = ('rpm' space+ integer) %{ this->command_ = command_type::rpm; };
-    cmd_amin = ('amin' space+ integer) %{ this->command_ = command_type::amin; };
+    cmd_anim = ('anim' space+ integer) %{ this->command_ = command_type::anim; };
 
     commands = (
         cmd_adc |
@@ -74,7 +74,7 @@
         cmd_dira |
         cmd_dirb |
         cmd_rpm |
-        cmd_amin
+        cmd_anim
     );
 
 	main := (space* commands space*) %finished;

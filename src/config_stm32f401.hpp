@@ -68,7 +68,7 @@ using motor_step = mcu::pa_15;
 constexpr uint32_t pwm_divider = 84;
 constexpr uint32_t pwm_period = 2000;
 constexpr uint32_t micro_steps = 32;
-constexpr uint32_t steps_per_revolution = 200;
+constexpr uint32_t steps_per_revolution = 200 * micro_steps;
 
 using motor_pwm_timer = mcu::timer_02;
 using motor_step_pwm_channel = mcu::mux::pwm_channel<motor_pwm_timer, motor_step>;
@@ -80,8 +80,10 @@ using pump_signal = mcu::pb_00;
 using valve_signal = mcu::pb_05;
 
 using pump_pwm_channel = mcu::mux::pwm_channel<pump_pwm_timer, pump_signal>;
-using hall_channel = mcu::mux::adc_channel<sensor_adc, hall_sensor>;
-using ir_channel = mcu::mux::adc_channel<sensor_adc, ir_sensor>;
+using hall_channel = mcu::mux::adc_channel<sensor_adc, hall_sensor, 56>;
+using ir_channel = mcu::mux::adc_channel<sensor_adc, ir_sensor, 56>;
+
+extern volatile uint16_t sensors_values[2];
 
 using usart_stream_type = zoal::freertos::stream_buffer<zoal::freertos::freertos_allocation_type::static_mem>;
 extern zoal::mem::reserve_mem<usart_stream_type, 32> tty_rx_stream;

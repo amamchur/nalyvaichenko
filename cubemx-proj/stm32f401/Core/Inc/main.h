@@ -58,6 +58,18 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define pump_Pin GPIO_PIN_0
+#define pump_GPIO_Port GPIOB
+#define light_Pin GPIO_PIN_1
+#define light_GPIO_Port GPIOB
+#define step_Pin GPIO_PIN_15
+#define step_GPIO_Port GPIOA
+#define encoder_btn_Pin GPIO_PIN_3
+#define encoder_btn_GPIO_Port GPIOB
+#define encoder_b_Pin GPIO_PIN_4
+#define encoder_b_GPIO_Port GPIOB
+#define encoder_a_Pin GPIO_PIN_5
+#define encoder_a_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

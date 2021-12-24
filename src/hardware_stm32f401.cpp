@@ -1,3 +1,4 @@
+#include "adc.h"
 #include "config.hpp"
 #include "event_manager.hpp"
 #include "hardware.hpp"
@@ -125,10 +126,10 @@ void initialize_hardware() {
     HAL_NVIC_EnableIRQ(I2C1_ER_IRQn);
     HAL_NVIC_SetPriority(TIM2_IRQn, 8, 0);
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
-    HAL_NVIC_SetPriority(ADC_IRQn, 8, 0);
-    HAL_NVIC_EnableIRQ(ADC_IRQn);
-
-    sensor_adc::enable_interrupt();
+    //    HAL_NVIC_SetPriority(ADC_IRQn, 8, 0);
+    //    HAL_NVIC_EnableIRQ(ADC_IRQn);
+    //
+    //    sensor_adc::enable_interrupt();
     tty_usart::enable_rx();
 
     zoal::utils::interrupts::on();
@@ -207,7 +208,15 @@ extern "C" void TIM2_IRQHandler(void) {
     machine.handle_timer();
 }
 
-extern "C" void ADC_IRQHandler(void) {
-    zoal::periph::adc_dispatcher<sensor_adc>::api.complete(sensor_adc::value());
-    event_manager::set_isr(hardware_event_adc);
+volatile uint16_t sensors_values[2];
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+    if (hadc->Instance == ADC1) {
+        machine.handle_adc();
+    }
 }
+
+//extern "C" void ADC_IRQHandler(void) {
+//    zoal::periph::adc_dispatcher<sensor_adc>::api.complete(sensor_adc::value());
+//    event_manager::set_isr(hardware_event_adc);
+//}
