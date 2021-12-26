@@ -21,68 +21,16 @@ __attribute__((unused)) zoal::mem::reserve_mem<task_type, 256, StackType_t> mach
 
 extern "C" void SystemClock_Config(void);
 
-uint32_t hall = 0, min_h = 0xFFFFFF, max_h = 0;
-int skip = 0;
-sector_detector sd;
-
-float _err_measure = 0.8; // примерный шум измерений
-float _q = 0.1; // скорость изменения значений 0.001-1, варьировать самому
-float simpleKalman(float newVal) {
-    float _kalman_gain, _current_estimate;
-    static float _err_estimate = _err_measure;
-    static float _last_estimate = 0;
-    _kalman_gain = (float)_err_estimate / (_err_estimate + _err_measure);
-    _current_estimate = _last_estimate + (float)_kalman_gain * (newVal - _last_estimate);
-    _err_estimate = (1.0 - _kalman_gain) * _err_estimate + fabs(_last_estimate - _current_estimate) * _q;
-    _last_estimate = _current_estimate;
-    return _current_estimate;
-}
-
-int qqq = 0;
-
 [[noreturn]] void zoal_adc_task(void *) {
-    bool high = true;
-
     delay::ms(1000);
     motor_en::low();
 
     int dms = 1;
     for (;;) {
         HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&sensors_values, 2);
-        delay::ms(dms);
+        delay::ms(100);
 
-        auto result = sd.handle_v2(sensors_values[0]);
-        if (result == detection_result::changed) {
-            switch (sd.sector_state_) {
-            case sector_state::unknown:
-                tty_stream << "unknown: ";
-                break;
-            case sector_state::entering_sector:
-                tty_stream << "entering_sector: ";
-                break;
-            case sector_state::sector:
-                tty_stream << "sector: ";
-                min_h = 0xFFFFFF;
-                max_h = 0;
-                skip = 2000;
-                break;
-            case sector_state::leaving_sector:
-                tty_stream << "leaving_sector: ";
-                break;
-            }
-        }
-
-        if (skip > 0) {
-            skip--;
-        } else {
-            if (high) {
-                motor_step::low();
-                high = false;
-            } else {
-                motor_step::high();
-                high = true;
-            }
-        }
+        tty_stream << sensors_values[1] << "\r\n";
     }
 }
 

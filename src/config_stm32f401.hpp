@@ -84,6 +84,13 @@ using hall_channel = mcu::mux::adc_channel<sensor_adc, hall_sensor, 56>;
 using ir_channel = mcu::mux::adc_channel<sensor_adc, ir_sensor, 56>;
 
 extern volatile uint16_t sensors_values[2];
+inline uint16_t hall_sensor_value() {
+    return sensors_values[0];
+}
+
+inline uint16_t ir_sensor_value() {
+    return sensors_values[1];
+}
 
 using usart_stream_type = zoal::freertos::stream_buffer<zoal::freertos::freertos_allocation_type::static_mem>;
 extern zoal::mem::reserve_mem<usart_stream_type, 32> tty_rx_stream;

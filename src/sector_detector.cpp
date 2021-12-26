@@ -14,9 +14,9 @@ float sector_detector::simple_kalman(float newVal) {
     return _current_estimate;
 }
 
-detection_result sector_detector::handle_v2(int value) {
-    const int threshold = 50;
-    value = (int)simple_kalman((float)value);
+detection_result sector_detector::handle(int value) {
+    const int threshold = 100;
+//    value = (int)simple_kalman((float)value);
     if (edge_state_ == edge_state::idle) {
         if (value >= rising_threshold) {
             edge_state_ = edge_state::rising;

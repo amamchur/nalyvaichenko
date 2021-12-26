@@ -7,14 +7,14 @@
 template<uint32_t TimeExponent = 1000000>
 class stepper_kinematics {
 public:
-    double target_step_{0};
-    double current_step_{0};
-    double max_speed_{1}; // steps/sec
-    double current_speed_{0}; // steps/sec
-    double acceleration_{1}; // steps/sec^2
-    double period_{INFINITY}; // seconds / TimeExponent
+    float target_step_{0};
+    float current_step_{0};
+    float max_speed_{1}; // steps/sec
+    float current_speed_{0}; // steps/sec
+    float acceleration_{1}; // steps/sec^2
+    float period_{INFINITY}; // seconds / TimeExponent
 
-    void setup(double target, double accel, double max_speed, double start_speed = 0) {
+    void absolute(float target, float accel, float max_speed, float start_speed = 0) {
         target_step_ = target;
         current_step_ = 0;
         acceleration_ = accel;
@@ -23,11 +23,18 @@ public:
         calculate_period();
     }
 
-    double speed() const {
+    void relative(float steps, float accel, float max_speed) {
+        target_step_ += steps;
+        acceleration_ = accel;
+        max_speed_ = max_speed;
+        calculate_period();
+    }
+
+    float speed() const {
         return current_speed_;
     }
 
-    double period() const {
+    float period() const {
         return period_;
     }
 
@@ -46,7 +53,7 @@ public:
         }
 
         auto steps_left = target_step_ - current_step_;
-        auto speed = sqrt(2.0 * steps_left * acceleration_);
+        auto speed = sqrtf(2.0f * steps_left * acceleration_);
         if (speed > current_speed_) {
             if (current_speed_ == 0) {
                 speed = sqrt(2.0 * acceleration_);
@@ -57,14 +64,18 @@ public:
                 speed = max_speed_;
             }
         }
+        if (speed < 1) {
+            speed = 0;
+        }
 
         current_speed_ = speed;
         period_ = TimeExponent / speed;
     }
 
     void reset() {
-        target_step_ - 0;
+        target_step_ = 0;
         current_speed_ = 0;
+        current_step_ = 0;
         period_ = INFINITY;
     }
 };

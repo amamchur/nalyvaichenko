@@ -4,31 +4,51 @@
 #include "./config.hpp"
 #include "adc.h"
 
-void bartender_machine_v2::update_period() {
+constexpr uint8_t task_state_default = 0;
+constexpr uint8_t task_state_find_segment_correction = 1;
+constexpr uint8_t task_state_portion_rotate = 1;
+constexpr uint8_t task_state_portion_check = 2;
+constexpr uint8_t task_state_portion_make = 3;
+
+bool bartender_machine_v2::update_period() {
     auto period = sk.period();
     if (isinf(period)) {
         hold();
+        return false;
     } else {
         motor_step_pwm_channel::set(static_cast<uint32_t>(period / 2));
         motor_pwm_timer::TIMERx_CNT::ref() = 0;
         motor_pwm_timer::TIMERx_ARR::ref() = static_cast<uint32_t>(period);
         motor_pwm_timer::enable();
+        return true;
     }
 }
 
-void bartender_machine_v2::rotate(double steps, double speed) {
+void bartender_machine_v2::absolute_rotate(float steps, float speed) {
     if (speed <= 0) {
         speed = speed_;
     }
 
-    sk.setup(steps, acceleration_, speed);
+    sk.absolute(steps, acceleration_, speed);
     motor_en::low();
     motor_step_pwm_channel::connect();
     update_period();
     motor_pwm_timer::enable();
 }
 
-void bartender_machine_v2::stop() {
+void bartender_machine_v2::relative_rotate(float steps, float speed) {
+    if (speed <= 0) {
+        speed = speed_;
+    }
+
+    sk.relative(steps, acceleration_, speed);
+    motor_en::low();
+    motor_step_pwm_channel::connect();
+    update_period();
+    motor_pwm_timer::enable();
+}
+
+void bartender_machine_v2::stop_machine() {
     motor_en::high();
     motor_pwm_timer::disable();
     motor_step_pwm_channel::disconnect();
@@ -36,8 +56,6 @@ void bartender_machine_v2::stop() {
     HAL_ADC_Stop_DMA(&hadc1);
 
     motor_pwm_timer::TIMERx_SR::ref() &= ~motor_pwm_timer::TIMERx_SR_UIF;
-    state_ = state::idle;
-    job_ = job::none;
     tasks_.clear();
 }
 
@@ -46,8 +64,6 @@ void bartender_machine_v2::hold() {
     motor_pwm_timer::disable();
     motor_step_pwm_channel::disconnect();
     motor_pwm_timer::TIMERx_SR::ref() &= ~motor_pwm_timer::TIMERx_SR_UIF;
-    state_ = state::hold;
-    job_ = job::none;
 }
 
 void bartender_machine_v2::main_task() {
@@ -62,87 +78,141 @@ void bartender_machine_v2::main_task() {
 
 void bartender_machine_v2::handle_timer() {
     bartender_machine_task *t;
-    if (tasks_.front(&t)) {
-        bool finished = t->handle_timer_();
-        if (finished) {
-            tasks_.pop_front();
-            if (tasks_.front(&t)) {
-                t->start_();
-            }
+    if (!tasks_.front(&t)) {
+        return;
+    }
+
+    bool finished = t->handle_timer_(*t);
+    if (!finished) {
+        return;
+    }
+
+    while (finished) {
+        tasks_.pop_front();
+        if (!tasks_.front(&t)) {
+            return;
         }
+        finished = t->start_(*t);
     }
 }
 
 void bartender_machine_v2::handle_adc() {
     bartender_machine_task *t;
-    if (tasks_.front(&t)) {
-        bool finished = t->handle_adc_();
-        if (finished) {
-            tasks_.pop_front();
-            if (tasks_.front(&t)) {
-                t->start_();
-            }
+    if (!tasks_.front(&t)) {
+        return;
+    }
+
+    bool finished = t->handle_adc_(*t);
+    if (!finished) {
+        return;
+    }
+
+    while (finished) {
+        tasks_.pop_front();
+        if (!tasks_.front(&t)) {
+            return;
         }
+        finished = t->start_(*t);
     }
 }
 
 void bartender_machine_v2::rpm(uint32_t value) {
-    speed_ = static_cast<uint32_t>(value / 60.0 * steps_per_revolution);
+    speed_ = static_cast<float>(value) / 60.0f * steps_per_revolution;
 }
 
 void bartender_machine_v2::next_segment() {
-    auto steps = static_cast<double>(steps_per_revolution) / segments_;
-    rotate(steps);
+    push_find_segment();
 }
 
 void bartender_machine_v2::motor_test() {
-    auto start = [this]() {
-        auto steps = static_cast<double>(steps_per_revolution) * 50;
-        rotate(steps);
-    };
-    auto timer = [this]() {
-        sk.inc_step();
-        update_period();
-        return sk.current_step_ >= sk.target_step_;
-    };
-    auto adc = [this]() {
+    auto start = [this](bartender_machine_task &) {
+        auto steps = static_cast<float>(steps_per_revolution) * 3.0f;
+        absolute_rotate(steps);
         return false;
     };
+    auto timer = [this](bartender_machine_task &) {
+        sk.inc_step();
+        auto updated = update_period();
+        return !updated;
+    };
+    auto adc = [](bartender_machine_task &) { return false; };
     bartender_machine_task t(start, timer, adc);
     push_task(t);
 }
 
 void bartender_machine_v2::push_find_segment() {
-    auto start = [this]() {
-        auto steps = static_cast<double>(steps_per_revolution) / segments_ * 2;
-        rotate(steps, speed_);
+    auto start = [this](bartender_machine_task &) {
+        auto steps = static_cast<float>(steps_per_revolution) / static_cast<float>(segments_) * 2.0f;
+        motor_dir::low();
+        absolute_rotate(steps, speed_ / 2);
         HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&sensors_values, 2);
-    };
-    auto timer = [this]() {
-        sk.inc_step();
-        update_period();
         return false;
     };
-    auto adc = [this]() {
-        auto hall = sensors_values[0];
-        auto result = detector_.handle_v2(hall);
-//        const int max_v = 2600;
-//        const int min_v = 2000;
-//        auto rate = sqrt((double)(max_v - hall) / (max_v - min_v));
-//        if (rate < 0.7) {
-//            rate = 0.7;
-//        }
-//        sk.max_speed_ = speed_ * rate;
-
+    auto timer = [this](bartender_machine_task &t) {
+        sk.inc_step();
+        switch (t.state) {
+        case task_state_default: {
+            auto updated = update_period();
+            if (!updated) {
+                tasks_.clear();
+                return true;
+            }
+            break;
+        }
+        case task_state_find_segment_correction: {
+            auto updated = update_period();
+            if (!updated) {
+                hold();
+                sk.reset();
+                return true;
+            }
+            break;
+        }
+        default:
+            break;
+        }
+        if (t.state == task_state_default) {
+            auto updated = update_period();
+            if (!updated) {
+                tasks_.clear();
+                return true;
+            }
+        }
+        return false;
+    };
+    auto adc = [this](bartender_machine_task &t) {
+        auto hall = hall_sensor_value();
+        auto result = detector_.handle(hall);
         if (result == detection_result::changed && detector_.sector_state_ == sector_state::sector) {
-            hold();
-            return true;
+            if (correction_ > 0) {
+                motor_dir::low();
+            } else {
+                motor_dir::high();
+            }
+            absolute_rotate(static_cast<float>(correction_), speed_ / 4);
+            update_period();
+            t.state = task_state_find_segment_correction;
         } else {
             HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&sensors_values, 2);
         }
         return false;
     };
     bartender_machine_task t(start, timer, adc);
+    push_task(t);
+}
+
+void bartender_machine_v2::push_release() {
+    auto start = [this](bartender_machine_task &) {
+        motor_en::high();
+        motor_pwm_timer::disable();
+        motor_step_pwm_channel::disconnect();
+        sk.reset();
+        HAL_ADC_Stop_DMA(&hadc1);
+        motor_pwm_timer::TIMERx_SR::ref() &= ~motor_pwm_timer::TIMERx_SR_UIF;
+        return true;
+    };
+
+    bartender_machine_task t(start, null_task_handler, null_task_handler);
     push_task(t);
 }
 
@@ -166,31 +236,61 @@ void bartender_machine_v2::push_task(bartender_machine_task &task) {
     bool start_now = tasks_.empty();
     tasks_.push_back(task);
     if (start_now) {
-        task.start_();
+        task.start_(task);
     }
 }
 
 void bartender_machine_v2::go() {
     push_find_segment();
 
-    auto start = [this]() {
-        auto steps = static_cast<double>(steps_per_revolution) / segments_;
-        rotate(steps, speed_);
-        HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&sensors_values, 2);
-    };
-    auto timer = [this]() {
-        sk.inc_step();
-        update_period();
-        return sk.current_step_ >= sk.target_step_;
-    };
-    auto adc = [this]() {
-//        auto hall = sensors_values[0];
-        HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&sensors_values, 2);
+    auto start = [this](bartender_machine_task &t) {
+        auto steps = static_cast<float>(steps_per_revolution) / static_cast<float>(segments_);
+        motor_dir::low();
+        t.state = task_state_portion_rotate;
+        relative_rotate(steps, speed_);
         return false;
     };
+    auto timer = [this](bartender_machine_task &t) {
+        switch (t.state) {
+        case task_state_portion_rotate: {
+            sk.inc_step();
+            auto updated = update_period();
+            if (!updated) {
+                hold();
+                t.state = task_state_portion_check;
+                HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&sensors_values, 2);
+            }
+            break;
+        }
+        case task_state_portion_make:
+            return true;
+        }
+        return false;
+    };
+    auto adc = [this](bartender_machine_task &t) {
+        if (t.state == task_state_portion_check) {
+            auto ir = ir_sensor_value();
+            if (ir > ir_value_) {
+                return true;
+            }
+            t.state = task_state_portion_make;
+            motor_pwm_timer::TIMERx_CNT::ref() = 0;
+            motor_pwm_timer::TIMERx_ARR::ref() = portion_time_ms_ * 1000; // us
+            motor_pwm_timer::enable();
+            return false;
+        }
+        return true;
+    };
 
-    for (int i = 0; i < segments_; i++) {
+    for (int i = 0; i < 6; i++) {
         bartender_machine_task t(start, timer, adc);
+        t.portion = i;
         push_task(t);
     }
+
+    push_release();
+}
+
+bool bartender_machine_v2::null_task_handler(bartender_machine_task &) {
+    return true;
 }

@@ -4,6 +4,7 @@
 #include "./fonts/roboto_regular_16.hpp"
 #include "./hardware.hpp"
 #include "./voice.hpp"
+#include "adc.h"
 
 #include <cmath>
 #include <cstdio>
@@ -427,13 +428,14 @@ void sensor_screen::render(gui &g) {
     gr.position(0, font->y_advance);
     gr.draw_progmem(text_hall);
     gr.position(92, font->y_advance);
-    grs << hall_channel::read();
+    grs << sensors_values[0];
 
     gr.position(0, font->y_advance * 2);
     gr.draw_progmem(text_ir_sensor);
     gr.position(92, font->y_advance * 2);
-    grs << ir_channel::read();
+    grs << sensors_values[1];
 
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&sensors_values, 2);
     send_command(command_type::request_render_screen_500ms);
 }
 

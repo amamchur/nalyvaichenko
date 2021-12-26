@@ -31,13 +31,6 @@ static void render_frame(void * = nullptr) {
     screen.display();
 }
 
-static void display_adc(uint16_t hall, uint16_t ir) {
-    tty_stream << "\033[2K\r";
-    tty_stream << "hall:\t" << hall << "\r\n";
-    tty_stream << "ir:\t" << ir << "\r\n";
-    terminal.sync();
-}
-
 static void process_command(command &cmd) {
     auto type = cmd.type;
 
@@ -61,7 +54,7 @@ static void process_command(command &cmd) {
         send_command(command_type::render_screen);
         break;
     case command_type::stop:
-        //        bartender.stop_machine();
+        machine.stop_machine();
         break;
     case command_type::go:
         machine.go();
@@ -76,7 +69,7 @@ static void process_command(command &cmd) {
         //        bartender.valve(cmd.value);
         break;
     case command_type::next_segment:
-        machine.push_find_segment();
+        machine.next_segment();
         break;
     case command_type::render_screen:
         render_frame();
@@ -148,7 +141,7 @@ static void process_command(command &cmd) {
         machine.motor_test();
         break;
     case command_type::disable_motor:
-        machine.stop();
+        machine.stop_machine();
         break;
     case command_type::direction_a:
         motor_dir::low();
