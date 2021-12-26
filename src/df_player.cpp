@@ -2,11 +2,9 @@
 
 #include "event_manager.hpp"
 
-static df_player_tx_transport df_player_rx;
-
 void df_player::send() {
     waiting_ack_ = true;
-    df_player_rx.send_data(request_, sizeof(request_));
+    df_player_tx_transport::send_data(request_, sizeof(request_));
     delay::ms(10);
 }
 
@@ -115,4 +113,4 @@ void df_player::enqueue_track(int fileNumber) {
     play_next_track();
 }
 
-df_player::df_player() noexcept {}
+df_player::df_player() noexcept = default;

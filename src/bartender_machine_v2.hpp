@@ -52,7 +52,7 @@ private:
     stepper_kinematics<> sk;
     sector_detector detector_;
     float speed_{step_per_rotation / 3.0};
-    float acceleration_{step_per_rotation};
+    float acceleration_{step_per_rotation * 2};
     uint8_t segments_{6};
     int correction_{16};
     uint32_t portion_time_ms_{850};

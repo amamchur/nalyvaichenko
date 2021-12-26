@@ -282,7 +282,7 @@ void bartender_machine_v2::go() {
         return true;
     };
 
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < segments_; i++) {
         bartender_machine_task t(start, timer, adc);
         t.portion = i;
         push_task(t);

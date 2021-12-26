@@ -45,6 +45,7 @@ using w25q32 = zoal::ic::w25qxx<flash_spi, flash_spi_cs, delay>;
 using df_player_usart = mcu::usart_02;
 using df_player_usart_rx = mcu::pa_03;
 using df_player_usart_tx = mcu::pa_02;
+using df_player_busy = mcu::pc_13;
 
 using adc = mcu::adc_01;
 using i2c = mcu::i2c_01;

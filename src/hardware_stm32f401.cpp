@@ -29,6 +29,10 @@ void initialize_hardware() {
     using tty_usart_mux = mcu::mux::usart<tty_usart, tty_usart_rx, tty_usart_tx>;
     using tty_usart_cfg = mcu::cfg::usart<tty_usart, tty_usart_params>;
 
+    using df_player_usart_params = zoal::periph::usart_9600<apb1_clock_freq>;
+    using df_player_mux = mcu::mux::usart<df_player_usart, df_player_usart_rx, df_player_usart_tx>;
+    using df_player_cfg = mcu::cfg::usart<df_player_usart, df_player_usart_params>;
+
     using i2c_params = zoal::periph::i2c_fast_mode<apb1_clock_freq>;
     using i2c_mux = mcu::mux::i2c<i2c, i2c_sda, i2c_clk>;
     using i2c_cfg = mcu::cfg::i2c<i2c, i2c_params>;
@@ -58,6 +62,9 @@ void initialize_hardware() {
         tty_usart_mux::clock_on,
         tty_usart_cfg::clock_on,
         //
+        df_player_mux::clock_on,
+        df_player_cfg::clock_on,
+        //
         i2c_mux::clock_on,
         i2c_cfg::clock_on,
         //
@@ -78,12 +85,15 @@ void initialize_hardware() {
         >();
 
     // Disable peripherals before configuration
-    api::optimize<api::disable<tty_usart, i2c, oled_spi, flash_spi, sensor_adc, motor_pwm_timer>>();
+    api::optimize<api::disable<tty_usart, df_player_usart, i2c, oled_spi, flash_spi, sensor_adc, motor_pwm_timer>>();
 
     api::optimize<
         //
         tty_usart_mux::connect,
         tty_usart_cfg::apply,
+        //
+        df_player_mux::connect,
+        df_player_cfg::apply,
         //
         i2c_mux::connect,
         i2c_cfg::apply,
@@ -111,15 +121,18 @@ void initialize_hardware() {
                   motor_step>,
         api::high<flash_spi_cs, oled_cs, motor_en, motor_step>,
         api::low<motor_dir>,
-        api::mode<zoal::gpio::pin_mode::input_pull_up, encoder_pin_a, encoder_pin_b, encoder_pin_btn>
+        api::mode<zoal::gpio::pin_mode::input_pull_up, encoder_pin_a, encoder_pin_b, encoder_pin_btn>,
+        api::mode<zoal::gpio::pin_mode::input, df_player_busy>
         //
         >();
 
     // Enable peripherals after configuration
-    api::optimize<api::enable<tty_usart, i2c, oled_spi, flash_spi, sensor_adc>>();
+    api::optimize<api::enable<tty_usart, df_player_usart, i2c, oled_spi, flash_spi, sensor_adc>>();
 
     HAL_NVIC_SetPriority(USART1_IRQn, 6, 0);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
+    HAL_NVIC_SetPriority(USART2_IRQn, 6, 0);
+    HAL_NVIC_EnableIRQ(USART2_IRQn);
     HAL_NVIC_SetPriority(I2C1_EV_IRQn, 7, 0);
     HAL_NVIC_EnableIRQ(I2C1_EV_IRQn);
     HAL_NVIC_SetPriority(I2C1_ER_IRQn, 7, 0);
@@ -131,6 +144,7 @@ void initialize_hardware() {
     //
     //    sensor_adc::enable_interrupt();
     tty_usart::enable_rx();
+    df_player_usart::enable_rx();
 
     zoal::utils::interrupts::on();
 }
@@ -159,7 +173,7 @@ void df_player_tx_transport::send_data(const void *data, size_t size) {
     auto ptr = reinterpret_cast<const char *>(data);
     while (size > 0) {
         auto sent = player_tx_stream.send(ptr, size, 0);
-        tty_usart ::enable_tx();
+        df_player_usart::enable_tx();
         size -= sent;
         ptr += sent;
     }
