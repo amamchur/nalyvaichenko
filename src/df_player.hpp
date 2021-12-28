@@ -39,7 +39,7 @@ public:
     void push_byte(uint8_t byte);
     void process_response();
 
-private:
+//private:
     static uint16_t calculate_check_sum(const uint8_t *buffer);
     static void uint16_to_array(uint16_t value, uint8_t *array);
     static uint16_t array_to_uint16(const uint8_t *array);
