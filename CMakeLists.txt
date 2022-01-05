@@ -80,6 +80,7 @@ add_host_executable(emu
         src/fonts/roboto_regular_16.cpp
         src/fonts/roboto_regular_18.cpp
         src/logo/ascii_logo.cpp
+        src/hardware_host.cpp
         ${FLASH_STATE_MACHINE_SRC}
         )
 target_include_directories(emu PRIVATE src/emu)

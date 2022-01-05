@@ -15,11 +15,6 @@ public:
     int prev_value{0};
     int rising_threshold{2200};
     int falling_threshold{2100};
-
-private:
-    float _err_estimate{0.8};
-    float _last_estimate{0};
-    float simple_kalman(float newVal);
 };
 
 #endif

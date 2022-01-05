@@ -10,6 +10,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow) {
     ui->setupUi(this);
+    user_interface.push_screen(&user_interface.menu_screen_);
     user_interface.render();
 }
 

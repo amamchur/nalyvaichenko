@@ -437,7 +437,10 @@ void sensor_screen::render(gui &g) {
     gr.position(92, font->y_advance * 2);
     grs << sensors_values[1];
 
+#if defined(STM32F401xC)
     HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&sensors_values, 2);
+#endif
+
     send_command(command_type::request_render_screen_500ms);
 }
 
@@ -779,7 +782,6 @@ void power_screen::process_event(event &e, gui &gui) {
         menu_item_index--;
         break;
     case event_type::encoder_press: {
-        auto current = gui.current_screen();
         switch (menu_item_index) {
         case 0:
             gui.pop_screen();

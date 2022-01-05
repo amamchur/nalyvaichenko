@@ -17,4 +17,13 @@ extern scheduler_type general_scheduler;
 
 extern bartender_machine_v2 machine;
 
+extern volatile uint16_t sensors_values[2];
+inline uint16_t hall_sensor_value() {
+    return sensors_values[0];
+}
+
+inline uint16_t ir_sensor_value() {
+    return sensors_values[1];
+}
+
 #endif

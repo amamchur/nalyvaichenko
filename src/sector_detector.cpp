@@ -3,20 +3,8 @@
 #include <cmath>
 #include <cstdlib>
 
-float sector_detector::simple_kalman(float newVal) {
-    const float _err_measure = 0.8;
-    const float _q = 0.1;
-    float _kalman_gain, _current_estimate;
-    _kalman_gain = (float)_err_estimate / (_err_estimate + _err_measure);
-    _current_estimate = _last_estimate + (float)_kalman_gain * (newVal - _last_estimate);
-    _err_estimate = (1.0f - _kalman_gain) * _err_estimate + fabs(_last_estimate - _current_estimate) * _q;
-    _last_estimate = _current_estimate;
-    return _current_estimate;
-}
-
 detection_result sector_detector::handle(int value) {
     const int threshold = 100;
-//    value = (int)simple_kalman((float)value);
     if (edge_state_ == edge_state::idle) {
         if (value >= rising_threshold) {
             edge_state_ = edge_state::rising;
