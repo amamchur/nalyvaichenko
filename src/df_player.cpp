@@ -1,6 +1,7 @@
 #include "./df_player.hpp"
 
 #include "event_manager.hpp"
+#include "tty_terminal.hpp"
 
 void df_player::send() {
     waiting_ack_ = true;
@@ -48,6 +49,13 @@ void df_player::push_byte(uint8_t byte) {
     response_[response_bytes_++] = byte;
     if (response_bytes_ == sizeof(response_)) {
         process_response();
+
+        tty_stream << "\r\n";
+        for (int i = 0; i < response_bytes_; i++) {
+            tty_stream << zoal::io::hexadecimal(response_[i]) << " ";
+        }
+        tty_stream << "\r\n";
+
         response_bytes_ = 0;
     }
 }

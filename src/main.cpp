@@ -17,20 +17,20 @@ using task_type = zoal::freertos::task<zoal::freertos::freertos_allocation_type:
 __attribute__((unused)) zoal::mem::reserve_mem<task_type, 256, StackType_t> main_task(zoal_main_task, "main");
 __attribute__((unused)) zoal::mem::reserve_mem<task_type, 256, StackType_t> schedule_task(zoal_scheduler_task, "scheduler");
 __attribute__((unused)) zoal::mem::reserve_mem<task_type, 256, StackType_t> machine_task(zoal_machine_task, "machine");
-__attribute__((unused)) zoal::mem::reserve_mem<task_type, 256, StackType_t> adc_task(zoal_adc_task, "adc");
+//__attribute__((unused)) zoal::mem::reserve_mem<task_type, 256, StackType_t> adc_task(zoal_adc_task, "adc");
 
 extern "C" void SystemClock_Config(void);
 
 [[noreturn]] void zoal_adc_task(void *) {
-    uint8_t busy = 0;
+    uint8_t not_busy = 0;
     for (;;) {
         auto v = df_player_busy::read();
-        if (busy == 0 && v == 1) {
+        if (not_busy == 0 && v == 1) {
             player.waiting_ack_ = false;
             player.playing_ = false;
             player.play_next_track();
         }
-        busy = v;
+        not_busy = v;
         delay::ms(1);
     }
 }
