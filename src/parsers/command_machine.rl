@@ -50,7 +50,10 @@
     cmd_dirb = ('dirb') %{ this->command_ = command_type::direction_b; };
     cmd_rpm = ('rpm' space+ integer) %{ this->command_ = command_type::rpm; };
     cmd_anim = ('anim' space+ integer) %{ this->command_ = command_type::anim; };
-
+    cmd_df_volume_read = ('df_volume') %{ this->command_ = command_type::df_volume_read; };
+    cmd_df_volume_write = ('df_volume' space+ integer) %{ this->command_ = command_type::df_volume_write; };
+    cmd_df_reset = ('df_reset') %{ this->command_ = command_type::df_reset; };
+    cmd_df_status = ('df_status') %{ this->command_ = command_type::df_status; };
     commands = (
         cmd_adc |
         cmd_help |
@@ -74,7 +77,12 @@
         cmd_dira |
         cmd_dirb |
         cmd_rpm |
-        cmd_anim
+        cmd_anim |
+
+        cmd_df_volume_read |
+        cmd_df_volume_write |
+        cmd_df_reset |
+        cmd_df_status
     );
 
 	main := (space* commands space*) %finished;

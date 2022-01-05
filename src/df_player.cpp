@@ -3,10 +3,30 @@
 #include "event_manager.hpp"
 #include "tty_terminal.hpp"
 
+constexpr uint8_t df_cmd_next = 0x01;
+constexpr uint8_t df_cmd_prev = 0x02;
+constexpr uint8_t df_cmd_track = 0x03;
+constexpr uint8_t df_cmd_inc_volume = 0x04;
+constexpr uint8_t df_cmd_dec_volume = 0x05;
+constexpr uint8_t df_cmd_reset = 0x0C;
+constexpr uint8_t df_cmd_volume_set = 0x06;
+constexpr uint8_t df_cmd_volume_get = 0x43;
+constexpr uint8_t df_cmd_status = 0x42;
+
+#define DF_DEBUG 1
+
 void df_player::send() {
+    using hex = zoal::io::hexadecimal_functor<uint8_t>;
     waiting_ack_ = true;
+
+#if DF_DEBUG
+    tty_stream << "\r\n<< ";
+    for (size_t i = 0; i < sizeof(request_); i++) {
+        tty_stream << hex(request_[i]) << " ";
+    }
+    tty_stream << "\r\n";
+#endif
     df_player_tx_transport::send_data(request_, sizeof(request_));
-    delay::ms(10);
 }
 
 uint16_t df_player::calculate_check_sum(const uint8_t *buffer) {
@@ -14,12 +34,12 @@ uint16_t df_player::calculate_check_sum(const uint8_t *buffer) {
     for (int i = msg_version; i < msg_checksum; i++) {
         sum += buffer[i];
     }
-    return -sum;
+    return ~sum + 1;
 }
 
 void df_player::uint16_to_array(uint16_t value, uint8_t *array) {
     *array = (uint8_t)(value >> 8);
-    *(array + 1) = (uint8_t)(value);
+    *(array + 1) = (uint8_t)(value & 0xFF);
 }
 
 uint16_t df_player::array_to_uint16(const uint8_t *array) {
@@ -37,40 +57,58 @@ void df_player::send_command(uint8_t command, uint16_t argument) {
 }
 
 void df_player::reset() {
-    send_command(0x0C);
+    playing_ = false;
+    send_command(df_cmd_reset);
 }
 
-void df_player::play(int fileNumber) {
+void df_player::status() {
+    send_command(df_cmd_status);
+}
+
+void df_player::play(int file_number) {
     playing_ = true;
-    send_command(0x03, fileNumber);
+    send_command(df_cmd_track, file_number);
 }
 
-void df_player::push_byte(uint8_t byte) {
-    response_[response_bytes_++] = byte;
-    if (response_bytes_ == sizeof(response_)) {
-        process_response();
+void df_player::volume() {
+    send_command(df_cmd_volume_get);
+}
 
-        tty_stream << "\r\n";
-        for (int i = 0; i < response_bytes_; i++) {
-            tty_stream << zoal::io::hexadecimal(response_[i]) << " ";
+void df_player::volume(int volume) {
+    send_command(df_cmd_volume_set, volume);
+}
+
+void df_player::push_data(const void *data, size_t size) {
+    parser_.push_and_scan(data, size);
+}
+
+void df_player::process_response_(const zoal::misc::df_player_scanner &scanner) {
+#if DF_DEBUG
+    {
+        using hex = zoal::io::hexadecimal_functor<uint8_t>;
+        auto s = reinterpret_cast<const uint8_t *>(scanner.token_start());
+        auto e = reinterpret_cast<const uint8_t *>(scanner.token_end());
+        tty_stream << "\r\n>> ";
+        while (s < e) {
+
+            tty_stream << hex(*s) << " ";
+            s++;
         }
         tty_stream << "\r\n";
-
-        response_bytes_ = 0;
     }
-}
+#endif
 
-void df_player::process_response() {
-    auto cs1 = calculate_check_sum(response_);
-    auto cs2 = array_to_uint16(response_ + msg_checksum);
+    auto resp = reinterpret_cast<const uint8_t *>(scanner.token_start());
+    auto cs1 = calculate_check_sum(resp);
+    auto cs2 = array_to_uint16(resp + msg_checksum);
 
     if (cs1 != cs2) {
         waiting_ack_ = false;
         return;
     }
 
-    auto params = array_to_uint16(response_ + msg_parameter);
-    auto cmd = response_[msg_command];
+    auto params = array_to_uint16(resp + msg_parameter);
+    auto cmd = resp[msg_command];
     switch (cmd) {
     case 0x03:
         playing_ = true;
@@ -88,18 +126,6 @@ void df_player::process_response() {
         }
         break;
     }
-
-    //    using hex = zoal::io::hexadecimal_functor<uint8_t>;
-    //    tty_stream << "\033[2K\r";
-    //    for (unsigned char i : request_) {
-    //        tty_stream << hex(i) << " ";
-    //    }
-    //    tty_stream << "\r\n";
-    //
-    //    for (unsigned char i : response_) {
-    //        tty_stream << hex(i) << " ";
-    //    }
-    //    tty_stream << "\r\n";
 }
 
 void df_player::play_next_track() {
@@ -114,11 +140,19 @@ void df_player::play_next_track() {
     play(track.file);
 }
 
-void df_player::enqueue_track(int fileNumber) {
+void df_player::enqueue_track(int file_number) {
     df_player_track track;
-    track.file = fileNumber;
+    track.file = file_number;
     queue_.push_back(track);
     play_next_track();
 }
 
-df_player::df_player() noexcept = default;
+void df_player::handler(const zoal::misc::df_player_scanner &m) {
+    auto me = reinterpret_cast<df_player*>(m.context);
+    me->process_response_(m);
+}
+
+df_player::df_player() noexcept : parser_(parse_buffer, sizeof(parse_buffer)) {
+    parser_.callback(&handler);
+    parser_.context = this;
+}

@@ -2,6 +2,7 @@
 #define NALYVAICHENKO_DF_PLAYER_HPP
 
 #include "./config.hpp"
+#include "./parsers/df_player_machine.hpp"
 
 #include <zoal/data/ring_buffer.hpp>
 #include <zoal/func/function.hpp>
@@ -29,28 +30,34 @@ public:
 
     void reset();
     void send();
+    void status();
 
     zoal::func::function<16, void, uint8_t, uint16_t> callback_;
 
     void send_command(uint8_t command, uint16_t argument = 0);
-    void play(int fileNumber);
-    void enqueue_track(int fileNumber);
+    void play(int file_number);
+    void volume();
+    void volume(int value);
+    void enqueue_track(int file_number);
 
-    void push_byte(uint8_t byte);
-    void process_response();
+    void push_data(const void *data, size_t size);
 
-//private:
+    //private:
     static uint16_t calculate_check_sum(const uint8_t *buffer);
     static void uint16_to_array(uint16_t value, uint8_t *array);
     static uint16_t array_to_uint16(const uint8_t *array);
 
     zoal::data::ring_buffer<df_player_track, 5> queue_;
     uint8_t request_[df_player_message_size]{0x7E, 0xFF, 06, 00, 01, 00, 00, 00, 00, 0xEF};
-    uint8_t response_[df_player_message_size]{0x7E, 0xFF, 06, 00, 01, 00, 00, 00, 00, 0xEF};
     int response_bytes_{0};
     bool waiting_ack_{false};
     void play_next_track();
     bool playing_{false};
+
+    static void handler(const zoal::misc::df_player_scanner &m);
+    zoal::misc::df_player_parser parser_;
+    uint8_t parse_buffer[32]{0};
+    void process_response_(const zoal::misc::df_player_scanner &scanner);
 };
 
 #endif

@@ -38,7 +38,7 @@ function(RAGEL_GENERATE_CPP RGL_SRC CPP_SRC)
     add_custom_command(
             OUTPUT "${ABS_CPP_SRC}"
             COMMAND ragel
-            ARGS -G2 -L -o "${ABS_CPP_SRC}" "${ABS_FIL}"
+            ARGS -G0 -L -o "${ABS_CPP_SRC}" "${ABS_FIL}"
             DEPENDS "${ABS_FIL}"
             COMMENT "Running ragel file ${FILE_NAME}"
             VERBATIM)
@@ -51,6 +51,12 @@ include_directories(include)
 ragel_generate_cpp(src/parsers/command_machine.rl COMMAND_STATE_MACHINE_SRC)
 ragel_generate_cpp(src/parsers/terminal_machine.rl TERMINAL_STATE_MACHINE_SRC)
 ragel_generate_cpp(src/parsers/flash_machine.rl FLASH_STATE_MACHINE_SRC)
+ragel_generate_cpp(src/parsers/df_player_machine.rl DF_PLAYER_STATE_MACHINE_SRC)
+
+add_host_executable(test
+        src/emu/test.cpp
+        ${DF_PLAYER_STATE_MACHINE_SRC}
+        )
 
 add_host_executable(flash
         src/emu/flash.cpp
@@ -165,4 +171,5 @@ add_mcu_executable(stm32f401 stm32
         ${TERMINAL_STATE_MACHINE_SRC}
         ${COMMAND_STATE_MACHINE_SRC}
         ${FLASH_STATE_MACHINE_SRC}
+        ${DF_PLAYER_STATE_MACHINE_SRC}
         )

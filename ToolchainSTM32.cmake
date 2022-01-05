@@ -11,7 +11,7 @@ set(ARM_OBJCOPY arm-none-eabi-objcopy)
 set(ARM_OBJDUMP arm-none-eabi-objdump)
 set(ARM_SIZE arm-none-eabi-size)
 
-set(COMMON_FLAGS "-specs=nosys.specs -specs=nano.specs")
+set(COMMON_FLAGS "-specs=nosys.specs -specs=nano.specs -fsigned-char")
 set(CMAKE_CXX_FLAGS_INIT "${COMMON_FLAGS}")
 set(CMAKE_C_FLAGS_INIT "${COMMON_FLAGS}")
 

@@ -56,7 +56,7 @@ public:
         auto speed = sqrtf(2.0f * steps_left * acceleration_);
         if (speed > current_speed_) {
             if (current_speed_ == 0) {
-                speed = sqrt(2.0 * acceleration_);
+                speed = sqrtf(2.0f * acceleration_);
             } else {
                 speed = acceleration_ * period_ / TimeExponent + current_speed_;
             }

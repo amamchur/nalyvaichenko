@@ -3,8 +3,6 @@
 #include "./flash_manager.hpp"
 #include "./fonts/roboto_regular_16.hpp"
 #include "./hardware.hpp"
-#include "./voice.hpp"
-#include "adc.h"
 
 #include <cmath>
 #include <cstdio>
@@ -12,6 +10,12 @@
 #include <zoal/gfx/glyph_renderer.hpp>
 #include <zoal/gfx/renderer.hpp>
 #include <zoal/io/output_stream.hpp>
+
+#if defined(STM32F401xC)
+#include "adc.h"
+#else
+
+#endif
 
 static inline const zoal::text::font *get_font() {
     return &roboto_regular_16;
@@ -78,7 +82,6 @@ namespace zoal { namespace utils {
     public:
         template<class T>
         static T read_mem(const void *ptr) {
-            ;
             return *reinterpret_cast<const T *>(ptr);
         }
     };
@@ -175,7 +178,7 @@ void gui::push_screen(abstract_screen *scr) {
     current_screen_ = scr;
     current_screen_->activate(*this);
     send_command(command_type::request_render_screen);
-};
+}
 
 abstract_screen *gui::pop_screen() {
     abstract_screen *scr = screen_stack[stack_size - 1];
@@ -247,7 +250,6 @@ void ir_settings_screen::process_event(event &e, gui &gui) {
         menu_item_index--;
         break;
     case event_type::encoder_press: {
-        auto current = gui.current_screen();
         switch (menu_item_index) {
         case 0:
             gui.push_screen(&gui.settings_screen_);
@@ -549,7 +551,6 @@ void sector_settings_screen::process_event(event &e, gui &gui) {
         menu_item_index--;
         break;
     case event_type::encoder_press: {
-        auto current = gui.current_screen();
         switch (menu_item_index) {
         case 0:
             gui.push_screen(&gui.settings_screen_);
@@ -770,7 +771,6 @@ void adjustment_settings_screen::render(gui &g) {
 void adjustment_settings_screen::activate(gui &g) {}
 
 void power_screen::process_event(event &e, gui &gui) {
-    auto &power = global_app_state.settings.pump_power_;
     switch (e.type) {
     case event_type::encoder_cw:
         menu_item_index++;
@@ -785,13 +785,13 @@ void power_screen::process_event(event &e, gui &gui) {
             gui.pop_screen();
             break;
         case 1:
-            gui.input_int_screen_.value = power;
+            gui.input_int_screen_.value = global_app_state.settings.pump_power_;
             gui.input_int_screen_.min = 40;
             gui.input_int_screen_.max = 100;
             gui.input_int_screen_.title_progmem = text_power;
             gui.input_int_screen_.suffix_progmem = nullptr;
-            gui.input_int_screen_.callback = [&gui, &power, current](int v) {
-                power = v;
+            gui.input_int_screen_.callback = [&gui](int v) {
+                global_app_state.settings.pump_power_ = v;
                 global_app_state.save_settings();
 
                 gui.pop_screen();

@@ -22,16 +22,7 @@ __attribute__((unused)) zoal::mem::reserve_mem<task_type, 256, StackType_t> mach
 extern "C" void SystemClock_Config(void);
 
 [[noreturn]] void zoal_adc_task(void *) {
-    uint8_t not_busy = 0;
     for (;;) {
-        auto v = df_player_busy::read();
-        if (not_busy == 0 && v == 1) {
-            player.waiting_ack_ = false;
-            player.playing_ = false;
-            player.play_next_track();
-        }
-        not_busy = v;
-        delay::ms(1);
     }
 }
 
@@ -102,9 +93,7 @@ void process_player_rx() {
     size_t size;
     do {
         size = player_rx_stream.receive(rx_buffer, sizeof(rx_buffer), 0);
-        for (int i = 0; i < size; i++) {
-            player.push_byte(rx_buffer[i]);
-        }
+        player.push_data(rx_buffer, size);
     } while (size == sizeof(rx_buffer));
 }
 

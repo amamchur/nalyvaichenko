@@ -59,7 +59,12 @@ enum class command_type {
     direction_a,
     direction_b,
     rpm,
-    anim
+    anim,
+
+    df_volume_read,
+    df_volume_write,
+    df_reset,
+    df_status
 };
 
 class command {

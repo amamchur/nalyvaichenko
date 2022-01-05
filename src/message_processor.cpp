@@ -159,6 +159,18 @@ static void process_command(command &cmd) {
         user_interface.push_screen(&user_interface.animation_screen_);
         send_command(command_type::render_screen);
         break;
+    case command_type::df_volume_read:
+        player.volume();
+        break;
+    case command_type::df_volume_write:
+        player.volume(cmd.value);
+        break;
+    case command_type::df_reset:
+        player.reset();
+        break;
+    case command_type::df_status:
+        player.status();
+        break;
     default:
         break;
     }
