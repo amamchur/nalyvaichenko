@@ -108,7 +108,7 @@ void process_player_rx() {
 
     user_interface.push_screen(&user_interface.menu_screen_);
     user_interface.push_screen(&user_interface.animation_screen_);
-    user_interface.animation_screen_.animation(2);
+    user_interface.animation_screen_.animation(1);
     send_command(command_type::render_screen);
 
     for (;;) {

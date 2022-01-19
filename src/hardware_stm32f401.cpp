@@ -25,37 +25,6 @@ df_player player;
 void initialize_hardware() {
     using api = zoal::gpio::api;
 
-    using tty_usart_params = zoal::periph::usart_115200<apb2_clock_freq>;
-    using tty_usart_mux = mcu::mux::usart<tty_usart, tty_usart_rx, tty_usart_tx>;
-    using tty_usart_cfg = mcu::cfg::usart<tty_usart, tty_usart_params>;
-
-    using df_player_usart_params = zoal::periph::usart_9600<apb1_clock_freq>;
-    using df_player_mux = mcu::mux::usart<df_player_usart, df_player_usart_rx, df_player_usart_tx>;
-    using df_player_cfg = mcu::cfg::usart<df_player_usart, df_player_usart_params>;
-
-    using i2c_params = zoal::periph::i2c_fast_mode<apb1_clock_freq>;
-    using i2c_mux = mcu::mux::i2c<i2c, i2c_sda, i2c_clk>;
-    using i2c_cfg = mcu::cfg::i2c<i2c, i2c_params>;
-
-    using flash_spi_params = zoal::periph::spi_params<apb2_clock_freq>;
-    using flash_spi_mux = mcu::mux::spi<flash_spi, flash_spi_mosi, flash_spi_miso, flash_spi_sck>;
-    using flash_spi_cfg = mcu::cfg::spi<flash_spi, flash_spi_params>;
-
-    using oled_spi_params = zoal::periph::spi_params<apb2_clock_freq>;
-    using oled_spi_mux = mcu::mux::spi<oled_spi, oled_miso, oled_mosi, oled_sck>;
-    using oled_spi_cfg = mcu::cfg::spi<oled_spi, oled_spi_params>;
-
-    using adc_params = zoal::periph::adc_params<>;
-    using adc_cfg = mcu::cfg::adc<sensor_adc, adc_params>;
-
-    using timer_params = zoal::periph::timer_params<
-        //
-        apb2_clock_freq,
-        pwm_divider,
-        pwm_period,
-        zoal::periph::timer_mode::up>;
-    using timer_cfg = mcu::cfg::timer<motor_pwm_timer, timer_params>;
-
     // Enable bus clock
     api::optimize<
         //
@@ -76,7 +45,8 @@ void initialize_hardware() {
         //
         adc_cfg::clock_on,
         //
-        timer_cfg::clock_on,
+        machine_timer_cfg::clock_on,
+        pump_pwm_timer_cfg::clock_on,
         //
         mcu::port_a::clock_on_cas,
         mcu::port_b::clock_on_cas,
@@ -85,7 +55,7 @@ void initialize_hardware() {
         >();
 
     // Disable peripherals before configuration
-    api::optimize<api::disable<tty_usart, df_player_usart, i2c, oled_spi, flash_spi, sensor_adc, motor_pwm_timer>>();
+    api::optimize<api::disable<tty_usart, df_player_usart, i2c, oled_spi, flash_spi, sensor_adc, machine_timer>>();
 
     api::optimize<
         //
@@ -104,11 +74,12 @@ void initialize_hardware() {
         oled_spi_mux::connect,
         oled_spi_cfg::apply,
         //
-        timer_cfg::apply,
+        machine_timer_cfg::apply,
+        pump_pwm_timer_cfg::apply,
         zoal::ct::type_list<
             //
-            motor_pwm_timer::TIMERx_CR1::template cas<0, motor_pwm_timer::TIMERx_CR1_OPM>,
-            motor_pwm_timer::TIMERx_DIER::template cas<0, motor_pwm_timer::TIMERx_DIER_UIE>>,
+            machine_timer::TIMERx_CR1::template cas<0, machine_timer::TIMERx_CR1_OPM>,
+            machine_timer::TIMERx_DIER::template cas<0, machine_timer::TIMERx_DIER_UIE>>,
         //
         api::mode<zoal::gpio::pin_mode::output,
                   ///
@@ -127,7 +98,7 @@ void initialize_hardware() {
         >();
 
     // Enable peripherals after configuration
-    api::optimize<api::enable<tty_usart, df_player_usart, i2c, oled_spi, flash_spi, sensor_adc>>();
+    api::optimize<api::enable<tty_usart, df_player_usart, i2c, oled_spi, flash_spi, sensor_adc, pump_pwm_timer>>();
 
     HAL_NVIC_SetPriority(USART1_IRQn, 6, 0);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
@@ -218,7 +189,7 @@ extern "C" void I2C1_ER_IRQHandler() {
 bartender_machine_v2 machine;
 
 extern "C" void TIM2_IRQHandler(void) {
-    motor_pwm_timer::TIMERx_SR::ref() &= ~motor_pwm_timer::TIMERx_SR_UIF;
+    machine_timer::TIMERx_SR::ref() &= ~machine_timer::TIMERx_SR_UIF;
     machine.handle_timer();
 }
 

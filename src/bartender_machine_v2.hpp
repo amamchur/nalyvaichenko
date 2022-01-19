@@ -45,7 +45,7 @@ public:
 
     void go();
     void motor_test();
-
+    void pump(uint32_t delay_ticks);
 private:
     zoal::data::ring_buffer<bartender_machine_task, 16> tasks_;
 

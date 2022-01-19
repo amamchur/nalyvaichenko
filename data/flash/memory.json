@@ -15,6 +15,30 @@
     {
       "tag": 2,
       "file": "drink.gif"
+    },
+    {
+      "tag": 3,
+      "file": "wine.gif"
+    },
+    {
+      "tag": 4,
+      "file": "champagne.gif"
+    },
+    {
+      "tag": 5,
+      "file": "success.gif"
+    },
+    {
+      "tag": 6,
+      "file": "monster.gif"
+    },
+    {
+      "tag": 7,
+      "file": "firework.gif"
+    },
+    {
+      "tag": 8,
+      "file": "heart.gif"
     }
   ]
 }

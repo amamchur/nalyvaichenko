@@ -76,7 +76,7 @@ using pump_signal = mcu::pb_00;
 using valve_signal = mcu::pb_05;
 
 using pump_pwm_channel = mcu::mux::pwm_channel<pump_pwm_timer, pump_signal>;
-using hall_channel = mcu::mux::adc_channel<sensor_adc, hall_sensor>;
+using hall_adc_channel = mcu::mux::adc_channel<sensor_adc, hall_sensor>;
 using ir_channel = mcu::mux::adc_channel<sensor_adc, ir_sensor>;
 
 class tty_tx_transport {

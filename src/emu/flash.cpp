@@ -165,6 +165,7 @@ bool read_gif(const char *fileName, void *b, uint32_t tag) {
 
 int main(int argc, char *argv[]) {
     boost::filesystem::path path(boost::filesystem::current_path());
+    path /= "data";
     path /= "flash";
     boost::filesystem::path json_file = path / "memory.json";
 

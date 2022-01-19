@@ -63,7 +63,7 @@ static void process_command(command &cmd) {
         scan_i2c();
         break;
     case command_type::pump:
-        //        bartender.pump(cmd.value);
+        machine.pump(cmd.value);
         break;
     case command_type::valve:
         //        bartender.valve(cmd.value);

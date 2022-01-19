@@ -17,9 +17,9 @@ bool bartender_machine_v2::update_period() {
         return false;
     } else {
         motor_step_pwm_channel::set(static_cast<uint32_t>(period / 2));
-        motor_pwm_timer::TIMERx_CNT::ref() = 0;
-        motor_pwm_timer::TIMERx_ARR::ref() = static_cast<uint32_t>(period);
-        motor_pwm_timer::enable();
+        machine_timer::TIMERx_CNT::ref() = 0;
+        machine_timer::TIMERx_ARR::ref() = static_cast<uint32_t>(period);
+        machine_timer::enable();
         return true;
     }
 }
@@ -33,7 +33,7 @@ void bartender_machine_v2::absolute_rotate(float steps, float speed) {
     motor_en::low();
     motor_step_pwm_channel::connect();
     update_period();
-    motor_pwm_timer::enable();
+    machine_timer::enable();
 }
 
 void bartender_machine_v2::relative_rotate(float steps, float speed) {
@@ -45,25 +45,31 @@ void bartender_machine_v2::relative_rotate(float steps, float speed) {
     motor_en::low();
     motor_step_pwm_channel::connect();
     update_period();
-    motor_pwm_timer::enable();
+    machine_timer::enable();
 }
 
 void bartender_machine_v2::stop_machine() {
     motor_en::high();
-    motor_pwm_timer::disable();
+    machine_timer::disable();
     motor_step_pwm_channel::disconnect();
+
+    pump_pwm_timer::disable();
+    pump_pwm_channel::disconnect();
+    pump_signal::low();
+    valve_signal::low();
+
     sk.reset();
     HAL_ADC_Stop_DMA(&hadc1);
 
-    motor_pwm_timer::TIMERx_SR::ref() &= ~motor_pwm_timer::TIMERx_SR_UIF;
+    machine_timer::TIMERx_SR::ref() &= ~machine_timer::TIMERx_SR_UIF;
     tasks_.clear();
 }
 
 void bartender_machine_v2::hold() {
     motor_en::low();
-    motor_pwm_timer::disable();
+    machine_timer::disable();
     motor_step_pwm_channel::disconnect();
-    motor_pwm_timer::TIMERx_SR::ref() &= ~motor_pwm_timer::TIMERx_SR_UIF;
+    machine_timer::TIMERx_SR::ref() &= ~machine_timer::TIMERx_SR_UIF;
 }
 
 void bartender_machine_v2::main_task() {
@@ -204,11 +210,11 @@ void bartender_machine_v2::push_find_segment() {
 void bartender_machine_v2::push_release() {
     auto start = [this](bartender_machine_task &) {
         motor_en::high();
-        motor_pwm_timer::disable();
+        machine_timer::disable();
         motor_step_pwm_channel::disconnect();
         sk.reset();
         HAL_ADC_Stop_DMA(&hadc1);
-        motor_pwm_timer::TIMERx_SR::ref() &= ~motor_pwm_timer::TIMERx_SR_UIF;
+        machine_timer::TIMERx_SR::ref() &= ~machine_timer::TIMERx_SR_UIF;
         return true;
     };
 
@@ -274,9 +280,9 @@ void bartender_machine_v2::go() {
                 return true;
             }
             t.state = task_state_portion_make;
-            motor_pwm_timer::TIMERx_CNT::ref() = 0;
-            motor_pwm_timer::TIMERx_ARR::ref() = portion_time_ms_ * 1000; // us
-            motor_pwm_timer::enable();
+            machine_timer::TIMERx_CNT::ref() = 0;
+            machine_timer::TIMERx_ARR::ref() = portion_time_ms_ * 1000; // us
+            machine_timer::enable();
             return false;
         }
         return true;
@@ -293,4 +299,33 @@ void bartender_machine_v2::go() {
 
 bool bartender_machine_v2::null_task_handler(bartender_machine_task &) {
     return true;
+}
+
+void bartender_machine_v2::pump(uint32_t delay_ticks) {
+    auto start = [delay_ticks](bartender_machine_task &t) {
+        motor_en::high();
+        motor_step_pwm_channel::disconnect();
+        machine_timer::disable();
+        machine_timer::TIMERx_CNT::ref() = 0;
+        machine_timer::TIMERx_ARR::ref() = delay_ticks * 1000;
+        machine_timer::enable();
+
+        pump_pwm_channel::connect();
+        pump_pwm_channel::set(500);
+        valve_signal::high();
+        return false;
+    };
+    auto timer = [](bartender_machine_task &t) {
+        machine_timer::enable();
+        pump_pwm_channel::disconnect();
+        pump_signal::low();
+        valve_signal::low();
+        return true;
+    };
+    auto adc = [](bartender_machine_task &t) {
+        return false;
+    };
+
+    bartender_machine_task t(start, timer, adc);
+    push_task(t);
 }
