@@ -89,9 +89,11 @@ void initialize_hardware() {
                   oled_res,
                   motor_dir,
                   motor_en,
-                  motor_step>,
+                  motor_step,
+                  pump_signal,
+                  valve_signal>,
         api::high<flash_spi_cs, oled_cs, motor_en, motor_step>,
-        api::low<motor_dir>,
+        api::low<motor_dir, pump_signal, valve_signal>,
         api::mode<zoal::gpio::pin_mode::input_pull_up, encoder_pin_a, encoder_pin_b, encoder_pin_btn>,
         api::mode<zoal::gpio::pin_mode::input, df_player_busy>
         //
@@ -189,8 +191,10 @@ extern "C" void I2C1_ER_IRQHandler() {
 bartender_machine_v2 machine;
 
 extern "C" void TIM2_IRQHandler(void) {
-    machine_timer::TIMERx_SR::ref() &= ~machine_timer::TIMERx_SR_UIF;
-    machine.handle_timer();
+    if (machine_timer::TIMERx_SR::ref() & machine_timer::TIMERx_SR_UIF) {
+        machine_timer::TIMERx_SR::ref() &= ~machine_timer::TIMERx_SR_UIF;
+        machine.handle_timer();
+    }
 }
 
 volatile uint16_t sensors_values[2];

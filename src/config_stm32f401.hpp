@@ -106,7 +106,7 @@ using pump_pwm_timer_cfg = mcu::cfg::timer<pump_pwm_timer, pump_pwm_timer_params
 using pump_signal = mcu::pb_00;
 using pump_pwm_channel = mcu::mux::pwm_channel<pump_pwm_timer, pump_signal>;
 
-using valve_signal = mcu::pb_05;
+using valve_signal = mcu::pb_12;
 
 using hall_adc_channel = mcu::mux::adc_channel<sensor_adc, hall_sensor, 56>;
 using ir_adc_channel = mcu::mux::adc_channel<sensor_adc, ir_sensor, 56>;

@@ -66,7 +66,7 @@ static void process_command(command &cmd) {
         machine.pump(cmd.value);
         break;
     case command_type::valve:
-        //        bartender.valve(cmd.value);
+        machine.valve(cmd.value);
         break;
     case command_type::next_segment:
         machine.next_segment();

@@ -269,6 +269,11 @@ void bartender_machine_v2::go() {
             break;
         }
         case task_state_portion_make:
+            machine_timer::disable();
+            pump_pwm_timer::disable();
+            pump_pwm_channel::disconnect();
+            pump_signal::low();
+            valve_signal::low();
             return true;
         }
         return false;
@@ -283,6 +288,12 @@ void bartender_machine_v2::go() {
             machine_timer::TIMERx_CNT::ref() = 0;
             machine_timer::TIMERx_ARR::ref() = portion_time_ms_ * 1000; // us
             machine_timer::enable();
+
+            pump_pwm_channel::connect();
+            pump_pwm_channel::set(950);
+            pump_pwm_timer::enable();
+            valve_signal::high();
+
             return false;
         }
         return true;
@@ -306,12 +317,41 @@ void bartender_machine_v2::pump(uint32_t delay_ticks) {
         motor_en::high();
         motor_step_pwm_channel::disconnect();
         machine_timer::disable();
+        machine_timer::TIMERx_ARR::ref() = delay_ticks * 1000;
+        machine_timer::TIMERx_CNT::ref() = 0;
+        machine_timer::enable();
+
+        pump_pwm_channel::connect();
+        pump_pwm_channel::set(950);
+        pump_pwm_timer::enable();
+        valve_signal::high();
+        return false;
+    };
+    auto timer = [](bartender_machine_task &t) {
+        machine_timer::disable();
+        pump_pwm_timer::disable();
+        pump_pwm_channel::disconnect();
+        pump_signal::low();
+        valve_signal::low();
+        return true;
+    };
+    auto adc = [](bartender_machine_task &t) {
+        return false;
+    };
+
+    bartender_machine_task t(start, timer, adc);
+    push_task(t);
+}
+
+void bartender_machine_v2::valve(int delay_ticks) {
+    auto start = [delay_ticks](bartender_machine_task &t) {
+        motor_en::high();
+        motor_step_pwm_channel::disconnect();
+        machine_timer::disable();
         machine_timer::TIMERx_CNT::ref() = 0;
         machine_timer::TIMERx_ARR::ref() = delay_ticks * 1000;
         machine_timer::enable();
 
-        pump_pwm_channel::connect();
-        pump_pwm_channel::set(500);
         valve_signal::high();
         return false;
     };

@@ -46,16 +46,18 @@ public:
     void go();
     void motor_test();
     void pump(uint32_t delay_ticks);
+    void valve(int i);
+
 private:
     zoal::data::ring_buffer<bartender_machine_task, 16> tasks_;
 
     stepper_kinematics<> sk;
     sector_detector detector_;
-    float speed_{step_per_rotation / 3.0};
-    float acceleration_{step_per_rotation * 2};
+    float speed_{step_per_rotation / 2.0};
+    float acceleration_{step_per_rotation};
     uint8_t segments_{6};
     int correction_{16};
-    uint32_t portion_time_ms_{850};
+    uint32_t portion_time_ms_{800};
     uint16_t ir_value_{400};
 
     bool update_period();
