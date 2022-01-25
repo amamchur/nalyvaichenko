@@ -17,8 +17,8 @@ bool bartender_machine_v2::update_period() {
         return false;
     } else {
         motor_step_pwm_channel::set(static_cast<uint32_t>(period / 2));
-        machine_timer::TIMERx_CNT::ref() = 0;
         machine_timer::TIMERx_ARR::ref() = static_cast<uint32_t>(period);
+        machine_timer::TIMERx_EGR::ref() |= machine_timer::TIMERx_EGR_UG;
         machine_timer::enable();
         return true;
     }
@@ -285,8 +285,8 @@ void bartender_machine_v2::go() {
                 return true;
             }
             t.state = task_state_portion_make;
-            machine_timer::TIMERx_CNT::ref() = 0;
             machine_timer::TIMERx_ARR::ref() = portion_time_ms_ * 1000; // us
+            machine_timer::TIMERx_EGR::ref() |= machine_timer::TIMERx_EGR_UG;
             machine_timer::enable();
 
             pump_pwm_channel::connect();
@@ -318,7 +318,7 @@ void bartender_machine_v2::pump(uint32_t delay_ticks) {
         motor_step_pwm_channel::disconnect();
         machine_timer::disable();
         machine_timer::TIMERx_ARR::ref() = delay_ticks * 1000;
-        machine_timer::TIMERx_CNT::ref() = 0;
+        machine_timer::TIMERx_EGR::ref() |= machine_timer::TIMERx_EGR_UG;
         machine_timer::enable();
 
         pump_pwm_channel::connect();
@@ -348,8 +348,8 @@ void bartender_machine_v2::valve(int delay_ticks) {
         motor_en::high();
         motor_step_pwm_channel::disconnect();
         machine_timer::disable();
-        machine_timer::TIMERx_CNT::ref() = 0;
         machine_timer::TIMERx_ARR::ref() = delay_ticks * 1000;
+        machine_timer::TIMERx_EGR::ref() |= machine_timer::TIMERx_EGR_UG;
         machine_timer::enable();
 
         valve_signal::high();

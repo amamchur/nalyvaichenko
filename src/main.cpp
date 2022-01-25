@@ -111,9 +111,6 @@ void process_player_rx() {
     user_interface.animation_screen_.animation(1);
     send_command(command_type::render_screen);
 
-    machine_timer::TIMERx_EGR::ref() &= ~1;
-    machine_timer::TIMERx_SR::ref() &= ~machine_timer::TIMERx_SR_UIF;
-
     for (;;) {
         auto events = event_manager::get();
         if (events & hardware_event_tty_rx) {
