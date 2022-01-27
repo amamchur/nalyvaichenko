@@ -47,12 +47,6 @@ static void process_command(command &cmd) {
         terminal.sync();
         break;
     }
-    case command_type::calibrate:
-        player.enqueue_track(voice::calibration);
-        //        bartender.calibrate();
-        send_event(event_type::calibration_started);
-        send_command(command_type::render_screen);
-        break;
     case command_type::stop:
         machine.stop_machine();
         break;

@@ -40,7 +40,6 @@
     cmd_enc = ('enc' space+ integer) %{ this->command_ = command_type::enc; };
     cmd_press = 'press' %{ this->command_ = command_type::press; };
     cmd_rotate = ('rotate' space+ integer) %{ this->command_ = command_type::rotate; };
-    cmd_calibrate = 'calibrate' %{ this->command_ = command_type::calibrate; };
     cmd_settings = 'settings' %{ this->command_ = command_type::settings; };
     cmd_riff = ('riff' space+ integer) %{ this->command_ = command_type::read_image_from_flash; };
     cmd_flash = ('flash') %{ this->command_ = command_type::flash; };
@@ -66,7 +65,6 @@
         cmd_next |
         cmd_logo |
         cmd_go |
-        cmd_calibrate |
         cmd_rotate |
         cmd_settings |
         cmd_press |

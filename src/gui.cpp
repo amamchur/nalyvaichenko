@@ -480,8 +480,7 @@ settings_screen::settings_screen()
     , menu_item_adjust(text_adjustment, adjustment_settings)
     , menu_item_sector(text_sector, sector_settings)
     , menu_item_sensors(text_sensors, sensors_setting)
-    , menu_item_next(text_next_segment, next_segment_action)
-    , menu_item_calibrate(text_calibrate, calibrate_action) {
+    , menu_item_next(text_next_segment, next_segment_action) {
     menu_item_back.next = &menu_item_portions;
     menu_item_portions.next = &menu_item_power;
     menu_item_power.next = &menu_item_ir;
@@ -489,7 +488,6 @@ settings_screen::settings_screen()
     menu_item_adjust.next = &menu_item_sector;
     menu_item_sector.next = &menu_item_sensors;
     menu_item_sensors.next = &menu_item_next;
-    menu_item_next.next = &menu_item_calibrate;
     create_back_trace(&menu_item_back);
 
     current_ = &menu_item_back;
@@ -497,10 +495,6 @@ settings_screen::settings_screen()
 
 void settings_screen::next_segment_action(gui &, menu_item &) {
     send_command(command_type::next_segment);
-}
-
-void settings_screen::calibrate_action(gui &, menu_item &) {
-    send_command(command_type::calibrate);
 }
 
 void menu_screen::process_event(event &e, gui &g) {

@@ -36,7 +36,6 @@ enum class command_type {
     show_help,
     show_adc,
     pump,
-    calibrate,
     scan_i2c,
     next_segment,
     render_screen,

@@ -118,7 +118,6 @@ private:
     static void sector_settings(gui &g, menu_item &);
     static void sensors_setting(gui &g, menu_item &);
     static void next_segment_action(gui &, menu_item &);
-    static void calibrate_action(gui &, menu_item &);
 
     menu_item menu_item_back;
     menu_item menu_item_portions;
@@ -128,7 +127,6 @@ private:
     menu_item menu_item_sector;
     menu_item menu_item_sensors;
     menu_item menu_item_next;
-    menu_item menu_item_calibrate;
 };
 
 class edit_portion_screen : public menu_screen {

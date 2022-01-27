@@ -1,13 +1,10 @@
 #include "./tty_terminal.hpp"
 
 #include "./logo/ascii_logo.hpp"
-#include "hardware.hpp"
 #include "message.hpp"
 #include "parsers/command_machine.hpp"
 
 const char terminal_greeting[] = "\033[0;32mmcu\033[m$ ";
-
-zoal::data::ring_buffer<uint8_t, tty_rx_buffer_size> tty_rx_buffer;
 
 tty_tx_transport transport;
 tty_tx_stream_type tty_stream(transport);
@@ -18,7 +15,6 @@ char command_history[tty_terminal_str_size] = {0};
 const char help_msg[] = "Commands: \r\n"
                         "\thelp\t\tdisplay help\r\n"
                         "\ti2c\t\tscan i2c devices\r\n"
-                        "\tcalibrate\tcalibrate revolver\r\n"
                         "\tnext\t\tnext segment\r\n"
                         "\tgo\t\trun machines\r\n"
                         "\tadc\t\tadc\r\n"
@@ -74,7 +70,7 @@ void handle_v100(const zoal::misc::terminal_input *, zoal::misc::terminal_machin
 }
 
 void vt100_callback(const zoal::misc::terminal_input *, const char *s, const char *e) {
-    transport.send_data(s, e - s);
+    tty_tx_transport::send_data(s, e - s);
 }
 
 void initialize_terminal() {
