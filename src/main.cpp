@@ -22,7 +22,14 @@ __attribute__((unused)) zoal::mem::reserve_mem<task_type, 256, StackType_t> mach
 extern "C" void SystemClock_Config(void);
 
 [[noreturn]] void zoal_adc_task(void *) {
+    motor_en_pin::low();
+
     for (;;) {
+        motor_step::low();
+        vTaskDelay(1);
+
+        motor_step::high();
+        vTaskDelay(1);
     }
 }
 

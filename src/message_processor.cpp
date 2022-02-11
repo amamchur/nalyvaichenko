@@ -86,12 +86,6 @@ static void process_command(command &cmd) {
     case command_type::play:
         player.enqueue_track(cmd.value);
         break;
-    case command_type::logo:
-        user_interface.push_screen(&user_interface.logo_screen_);
-        break;
-    case command_type::rotate:
-        //        bartender.rotate(cmd.value);
-        break;
     case command_type::settings: {
         auto &s = global_app_state.settings;
         auto &rs = s.revolver_settings_[s.segments_];
@@ -126,33 +120,58 @@ static void process_command(command &cmd) {
         tty_stream << "\r\n";
         tty_stream << "Flash Editor\r\n";
         break;
-    case command_type::read_image_from_flash: {
-        fm.read_frame(cmd.value, 0, &screen.buffer.canvas, sizeof(screen.buffer.canvas));
-        screen.display();
+    case command_type::motor_enable:
+        //        machine.motor_test();
+        motor_enable::on();
         break;
-    }
-    case command_type::enable_motor:
-        machine.motor_test();
+    case command_type::motor_disable:
+        motor_enable::off();
         break;
-    case command_type::disable_motor:
-        machine.stop_machine();
+    case command_type::motor_direction_cw:
+        motor_dir_cw::on();
         break;
-    case command_type::direction_a:
-        motor_dir::low();
+    case command_type::motor_direction_ccw:
+        motor_dir_cw::off();
         break;
-    case command_type::direction_b:
-        motor_dir::high();
-        break;
-    case command_type::rpm: {
+    case command_type::motor_rpm: {
         machine.rpm(cmd.value);
         terminal.sync();
         break;
     }
-    case command_type::anim:
+    case command_type::motor_accel: {
+        machine.acceleration(static_cast<float>(cmd.value));
+        terminal.sync();
+        break;
+    }
+    case command_type::motor_step:
+        machine.rotate(static_cast<float>(cmd.value));
+        terminal.sync();
+        break;
+    case command_type::motor_deg:
+        machine.rotate(steps_per_revolution / 360.0f * static_cast<float>(cmd.value));
+        terminal.sync();
+        break;
+    case command_type::motor_info:
+        tty_stream << "\r\n";
+        tty_stream << " Acceleration\t: " << machine.acceleration() << " steps/s^2\r\n";
+        tty_stream << " Max speed\t: " << machine.speed() << " steps/s\r\n";
+        terminal.sync();
+        break;
+
+    case command_type::ui_anim:
         user_interface.animation_screen_.animation(cmd.value);
         user_interface.push_screen(&user_interface.animation_screen_);
         send_command(command_type::render_screen);
         break;
+    case command_type::ui_image:
+        fm.read_frame(cmd.value, 0, &screen.buffer.canvas, sizeof(screen.buffer.canvas));
+        screen.display();
+        break;
+
+    case command_type::ui_logo:
+        user_interface.push_screen(&user_interface.logo_screen_);
+        break;
+
     case command_type::df_volume_read:
         player.volume();
         break;

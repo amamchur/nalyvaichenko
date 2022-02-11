@@ -78,6 +78,7 @@ void initialize_hardware() {
         pump_pwm_timer_cfg::apply,
         zoal::ct::type_list<
             //
+            machine_timer::TIMERx_EGR::template cas<0, machine_timer::TIMERx_EGR_UG>,
             machine_timer::TIMERx_CR1::template cas<0, machine_timer::TIMERx_CR1_OPM>,
             machine_timer::TIMERx_DIER::template cas<0, machine_timer::TIMERx_DIER_UIE>>,
         //
@@ -87,13 +88,13 @@ void initialize_hardware() {
                   oled_cs,
                   oled_ds,
                   oled_res,
-                  motor_dir,
-                  motor_en,
+                  motor_dir_pin,
+                  motor_en_pin,
                   motor_step,
                   pump_signal,
                   valve_signal>,
-        api::high<flash_spi_cs, oled_cs, motor_en, motor_step>,
-        api::low<motor_dir, pump_signal, valve_signal>,
+        api::high<flash_spi_cs, oled_cs, motor_en_pin, motor_step>,
+        api::low<motor_dir_pin, pump_signal, valve_signal>,
         api::mode<zoal::gpio::pin_mode::input_pull_up, encoder_pin_a, encoder_pin_b, encoder_pin_btn>,
         api::mode<zoal::gpio::pin_mode::input, df_player_busy>
         //

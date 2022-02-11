@@ -79,6 +79,7 @@ add_host_executable(emu
         src/fonts/roboto_regular_12.cpp
         src/fonts/roboto_regular_16.cpp
         src/fonts/roboto_regular_18.cpp
+        src/fonts/pixel_16.cpp
         src/logo/ascii_logo.cpp
         src/hardware_host.cpp
         ${FLASH_STATE_MACHINE_SRC}
@@ -166,6 +167,7 @@ add_mcu_executable(stm32f401 stm32
         src/settings.cpp
         src/gui.cpp
         src/fonts/roboto_regular_16.cpp
+        src/fonts/pixel_16.cpp
         src/config.cpp
         src/flash_manager.cpp
         src/bartender_machine_v2.cpp

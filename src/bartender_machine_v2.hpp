@@ -40,11 +40,19 @@ public:
     void handle_timer();
     void handle_adc();
     void rpm(uint32_t value);
+    void acceleration(float value);
+    inline float acceleration() const {
+        return acceleration_;
+    }
+    inline float speed() const {
+        return speed_;
+    }
+
     void next_segment();
     void process_event(event &e) override;
 
     void go();
-    void motor_test();
+    void rotate(float steps);
     void pump(uint32_t delay_ticks);
     void valve(int i);
 
@@ -53,8 +61,8 @@ private:
 
     stepper_kinematics<> sk;
     sector_detector detector_;
-    float speed_{step_per_rotation / 2.0};
-    float acceleration_{step_per_rotation};
+    float speed_{step_per_rotation * 4};
+    float acceleration_{step_per_rotation * 10};
     uint8_t segments_{6};
     int correction_{16};
     uint32_t portion_time_ms_{800};

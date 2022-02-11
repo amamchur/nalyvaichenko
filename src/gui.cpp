@@ -2,6 +2,7 @@
 
 #include "./flash_manager.hpp"
 #include "./fonts/roboto_regular_16.hpp"
+#include "./fonts/pixel_16.hpp"
 #include "./hardware.hpp"
 
 #include <cmath>
@@ -18,7 +19,7 @@
 #endif
 
 static inline const zoal::text::font *get_font() {
-    return &roboto_regular_16;
+    return &pixel_16;
 }
 
 template<class T>
@@ -214,7 +215,7 @@ void main_screen::go_action(gui &, menu_item &) {
 }
 
 void main_screen::logo_action(gui &gui, menu_item &) {
-    send_command(command_type::logo);
+    send_command(command_type::ui_anim);
 }
 
 void main_screen::pump_liquid(gui &, menu_item &) {

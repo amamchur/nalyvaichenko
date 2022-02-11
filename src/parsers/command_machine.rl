@@ -32,27 +32,34 @@
     cmd_stop = 'stop' %{ this->command_ = command_type::stop; };
     cmd_i2c = 'i2c' %{ this->command_ = command_type::scan_i2c; };
     cmd_next = 'next' %{ this->command_ = command_type::next_segment; };
-    cmd_logo = 'logo' %{ this->command_ = command_type::logo; };
     cmd_go = 'go' %{ this->command_ = command_type::go; };
     cmd_play = ('play' space+ positive) %{ this->command_ = command_type::play; };
     cmd_valve = ('valve' space+ positive) %{ this->command_ = command_type::valve; };
     cmd_pump = ('pump' space+ positive) %{ this->command_ = command_type::pump; };
     cmd_enc = ('enc' space+ integer) %{ this->command_ = command_type::enc; };
     cmd_press = 'press' %{ this->command_ = command_type::press; };
-    cmd_rotate = ('rotate' space+ integer) %{ this->command_ = command_type::rotate; };
     cmd_settings = 'settings' %{ this->command_ = command_type::settings; };
-    cmd_riff = ('riff' space+ integer) %{ this->command_ = command_type::read_image_from_flash; };
     cmd_flash = ('flash') %{ this->command_ = command_type::flash; };
-    cmd_em = ('em') %{ this->command_ = command_type::enable_motor; };
-    cmd_dm = ('dm') %{ this->command_ = command_type::disable_motor; };
-    cmd_dira = ('dira') %{ this->command_ = command_type::direction_a; };
-    cmd_dirb = ('dirb') %{ this->command_ = command_type::direction_b; };
-    cmd_rpm = ('rpm' space+ integer) %{ this->command_ = command_type::rpm; };
-    cmd_anim = ('anim' space+ integer) %{ this->command_ = command_type::anim; };
+
+    cmd_motor_enable = ('motor' space+ 'enable') %{ this->command_ = command_type::motor_enable; };
+    cmd_motor_disable = ('motor' space+ 'disable') %{ this->command_ = command_type::motor_disable; };
+    cmd_motor_dir_cw = ('motor' space+ 'dir' space+ 'cw') %{ this->command_ = command_type::motor_direction_cw; };
+    cmd_motor_dir_ccw = ('motor' space+ 'dir' space+ 'ccw') %{ this->command_ = command_type::motor_direction_ccw; };
+    cmd_motor_rpm = ('motor' space+ 'rpm' space+ integer) %{ this->command_ = command_type::motor_rpm; };
+    cmd_motor_accel = ('motor' space+ 'accel' space+ integer) %{ this->command_ = command_type::motor_accel; };
+    cmd_motor_step = ('motor' space+ 'step' space+ integer) %{ this->command_ = command_type::motor_step; };
+    cmd_motor_deg = ('motor' space+ 'deg' space+ integer) %{ this->command_ = command_type::motor_deg; };
+    cmd_motor_info = ('motor' space+ 'info') %{ this->command_ = command_type::motor_info; };
+
+    cmd_ui_anim = ('ui' space+ 'anim' space+ integer) %{ this->command_ = command_type::ui_anim; };
+    cmd_ui_image = ('ui' space+ 'image' space+ integer) %{ this->command_ = command_type::ui_image; };
+    cmd_ui_logo = ('ui' space+ 'logo') %{ this->command_ = command_type::ui_logo; };
+
     cmd_df_volume_read = ('df_volume') %{ this->command_ = command_type::df_volume_read; };
     cmd_df_volume_write = ('df_volume' space+ integer) %{ this->command_ = command_type::df_volume_write; };
     cmd_df_reset = ('df_reset') %{ this->command_ = command_type::df_reset; };
     cmd_df_status = ('df_status') %{ this->command_ = command_type::df_status; };
+
     commands = (
         cmd_adc |
         cmd_help |
@@ -63,19 +70,23 @@
         cmd_pump |
         cmd_enc |
         cmd_next |
-        cmd_logo |
         cmd_go |
-        cmd_rotate |
         cmd_settings |
         cmd_press |
-        cmd_riff |
         cmd_flash |
-        cmd_em |
-        cmd_dm |
-        cmd_dira |
-        cmd_dirb |
-        cmd_rpm |
-        cmd_anim |
+        cmd_motor_enable |
+        cmd_motor_disable |
+        cmd_motor_dir_cw |
+        cmd_motor_dir_ccw |
+        cmd_motor_rpm |
+        cmd_motor_accel |
+        cmd_motor_step |
+        cmd_motor_deg |
+        cmd_motor_info |
+
+        cmd_ui_anim |
+        cmd_ui_logo |
+        cmd_ui_image |
 
         cmd_df_volume_read |
         cmd_df_volume_write |

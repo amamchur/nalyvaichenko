@@ -80,8 +80,10 @@ using ir_sensor = mcu::pa_01;
 using start_signal = mcu::pc_14;
 using stop_signal = mcu::pc_15;
 
-using motor_dir = mcu::pb_02;
-using motor_en = mcu::pb_10;
+using motor_dir_pin = mcu::pb_02;
+using motor_dir_cw = zoal::gpio::active_low<motor_dir_pin>;
+using motor_en_pin = mcu::pb_10;
+using motor_enable = zoal::gpio::active_low<motor_en_pin>;
 using motor_step = mcu::pa_15;
 
 constexpr uint32_t pwm_divider = 83;
