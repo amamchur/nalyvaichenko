@@ -61,11 +61,11 @@ private:
 
     stepper_kinematics<> sk;
     sector_detector detector_;
-    float speed_{step_per_rotation * 4};
-    float acceleration_{step_per_rotation * 10};
+    float speed_{step_per_rotation * 2};
+    float acceleration_{step_per_rotation};
     uint8_t segments_{6};
     int correction_{16};
-    uint32_t portion_time_ms_{800};
+    uint32_t portion_time_ms_{1500};
     uint16_t ir_value_{400};
 
     bool update_period();

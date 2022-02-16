@@ -286,10 +286,10 @@ void bartender_machine_v2::go() {
     };
     auto adc = [this](bartender_machine_task &t) {
         if (t.state == task_state_portion_check) {
-            auto ir = ir_sensor_value();
-            if (ir > ir_value_) {
-                return true;
-            }
+//            auto ir = ir_sensor_value();
+//            if (ir > ir_value_) {
+//                return true;
+//            }
             t.state = task_state_portion_make;
             machine_timer::TIMERx_ARR::ref() = portion_time_ms_ * 1000; // us
             machine_timer::TIMERx_CNT::ref() = 0;
@@ -320,11 +320,10 @@ bool bartender_machine_v2::null_task_handler(bartender_machine_task &) {
 
 void bartender_machine_v2::pump(uint32_t delay_ticks) {
     auto start = [delay_ticks](bartender_machine_task &t) {
-        motor_enable::off();
         motor_step_pwm_channel::disconnect();
         machine_timer::disable();
         machine_timer::TIMERx_ARR::ref() = delay_ticks * 1000;
-        machine_timer::TIMERx_EGR::ref() |= machine_timer::TIMERx_EGR_UG;
+        machine_timer::TIMERx_CNT::ref() = 0;
         machine_timer::enable();
 
         pump_pwm_channel::connect();
