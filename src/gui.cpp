@@ -3,6 +3,7 @@
 #include "./flash_manager.hpp"
 #include "./fonts/roboto_regular_16.hpp"
 #include "./fonts/pixel_16.hpp"
+#include "./fonts/pixel_20.hpp"
 #include "./hardware.hpp"
 
 #include <cmath>
@@ -19,7 +20,7 @@
 #endif
 
 static inline const zoal::text::font *get_font() {
-    return &pixel_16;
+    return &roboto_regular_16;
 }
 
 template<class T>
@@ -72,7 +73,7 @@ static const wchar_t text_weight[] = L"Вага";
 static const wchar_t text_stop[] = L"Стоп!";
 static const wchar_t text_start[] = L"Запуск";
 static const wchar_t text_calibrate[] = L"Калібрування";
-static const wchar_t text_config[] = L"Налаштув.";
+static const wchar_t text_config[] = L"Налаштування";
 static const wchar_t text_logo[] = L"Лого";
 static const wchar_t text_pump[] = L"Прокачка";
 
@@ -215,7 +216,7 @@ void main_screen::go_action(gui &, menu_item &) {
 }
 
 void main_screen::logo_action(gui &gui, menu_item &) {
-    send_command(command_type::ui_anim);
+    send_command(command_type::ui_logo);
 }
 
 void main_screen::pump_liquid(gui &, menu_item &) {

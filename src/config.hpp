@@ -10,12 +10,12 @@
 #include "config_host.hpp"
 #endif
 
-#include "./bartender_machine_v2.hpp"
+#include "./bartender_machine.hpp"
 
 using scheduler_type = zoal::utils::function_scheduler<uint32_t, 8, void *>;
 extern scheduler_type general_scheduler;
 
-extern bartender_machine_v2 machine;
+extern bartender_machine machine;
 
 extern volatile uint16_t sensors_values[2];
 inline uint16_t hall_sensor_value() {

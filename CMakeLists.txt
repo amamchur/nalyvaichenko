@@ -168,9 +168,10 @@ add_mcu_executable(stm32f401 stm32
         src/gui.cpp
         src/fonts/roboto_regular_16.cpp
         src/fonts/pixel_16.cpp
+        src/fonts/pixel_20.cpp
         src/config.cpp
         src/flash_manager.cpp
-        src/bartender_machine_v2.cpp
+        src/bartender_machine.cpp
         ${TERMINAL_STATE_MACHINE_SRC}
         ${COMMAND_STATE_MACHINE_SRC}
         ${FLASH_STATE_MACHINE_SRC}

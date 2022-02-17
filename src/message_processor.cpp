@@ -8,6 +8,7 @@
 
 constexpr uint8_t fps = 30;
 constexpr uint32_t display_fresh_delay = 1000 / fps;
+constexpr int refresh_frame_id = 1000;
 bool pending_refresh_frame = false;
 
 static void scan_i2c() {
@@ -71,17 +72,17 @@ static void process_command(command &cmd) {
     case command_type::request_render_screen:
         if (!pending_refresh_frame) {
             pending_refresh_frame = true;
-            general_scheduler.schedule(0, display_fresh_delay, render_frame);
+            general_scheduler.schedule(refresh_frame_id, display_fresh_delay, render_frame);
         }
         break;
     case command_type::request_render_screen_ms:
         if (!pending_refresh_frame) {
-            general_scheduler.remove(0);
-            general_scheduler.schedule(0, cmd.value, render_frame);
+            general_scheduler.remove(refresh_frame_id);
+            general_scheduler.schedule(refresh_frame_id, cmd.value, render_frame);
         }
         break;
     case command_type::request_render_screen_500ms:
-        general_scheduler.schedule(0, 500, render_frame);
+        general_scheduler.schedule(refresh_frame_id, 500, render_frame);
         break;
     case command_type::play:
         player.enqueue_track(cmd.value);

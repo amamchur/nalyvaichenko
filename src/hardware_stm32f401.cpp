@@ -96,7 +96,8 @@ void initialize_hardware() {
         api::high<flash_spi_cs, oled_cs, motor_en_pin, motor_step>,
         api::low<motor_dir_pin, pump_signal, valve_signal>,
         api::mode<zoal::gpio::pin_mode::input_pull_up, encoder_pin_a, encoder_pin_b, encoder_pin_btn>,
-        api::mode<zoal::gpio::pin_mode::input, df_player_busy>
+        api::mode<zoal::gpio::pin_mode::input, df_player_busy>,
+        api::mode<zoal::gpio::pin_mode::input_pull_up, start_signal, stop_signal>
         //
         >();
 
@@ -113,14 +114,15 @@ void initialize_hardware() {
     HAL_NVIC_EnableIRQ(I2C1_ER_IRQn);
     HAL_NVIC_SetPriority(TIM2_IRQn, 8, 0);
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
-    //    HAL_NVIC_SetPriority(ADC_IRQn, 8, 0);
-    //    HAL_NVIC_EnableIRQ(ADC_IRQn);
-    //
-    //    sensor_adc::enable_interrupt();
+    HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 9, 0);
+    HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+
     tty_usart::enable_rx();
     df_player_usart::enable_rx();
 
     zoal::utils::interrupts::on();
+
+    screen.init();
 }
 
 void tty_tx_transport::send_byte(uint8_t value) {
@@ -189,7 +191,7 @@ extern "C" void I2C1_ER_IRQHandler() {
     });
 }
 
-bartender_machine_v2 machine;
+bartender_machine machine;
 
 extern "C" void TIM2_IRQHandler(void) {
     if (machine_timer::TIMERx_SR::ref() & machine_timer::TIMERx_SR_UIF) {
@@ -205,8 +207,3 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
         machine.handle_adc();
     }
 }
-
-//extern "C" void ADC_IRQHandler(void) {
-//    zoal::periph::adc_dispatcher<sensor_adc>::api.complete(sensor_adc::value());
-//    event_manager::set_isr(hardware_event_adc);
-//}

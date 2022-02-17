@@ -2,7 +2,6 @@
 #define NALYVAICHENKO_HARDWARE_ATMEGA2560_HPP
 
 #include "./config.hpp"
-#include "bartender_machine.hpp"
 #include "df_player.hpp"
 
 #include <zoal/board/arduino_mega.hpp>
@@ -24,8 +23,8 @@ extern zoal::utils::i2c_scanner scanner;
 
 extern oled_type screen;
 
-using encoder_button_config = zoal::io::button_config<true, 20, 500, 50>;
-using button_config = zoal::io::button_config<true, 20, 500, 0>;
+using encoder_button_config = zoal::io::button_config<true, 20, 0, 0>;
+using button_config = zoal::io::button_config<true, 20, 0, 0>;
 
 using encoder_button_type = zoal::io::button<uint32_t, encoder_pin_btn, encoder_button_config>;
 using start_button_type = zoal::io::button<uint32_t, start_signal, button_config>;

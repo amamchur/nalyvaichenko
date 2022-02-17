@@ -13,8 +13,8 @@ public:
     edge_state edge_state_{edge_state::idle};
 
     int prev_value{0};
-    int rising_threshold{2200};
-    int falling_threshold{2100};
+    int rising_threshold{2800};
+    int falling_threshold{2400};
 };
 
 #endif

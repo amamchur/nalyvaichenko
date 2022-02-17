@@ -13,7 +13,7 @@ constexpr uint8_t df_cmd_volume_set = 0x06;
 constexpr uint8_t df_cmd_volume_get = 0x43;
 constexpr uint8_t df_cmd_status = 0x42;
 
-#define DF_DEBUG 1
+#define DF_DEBUG 0
 
 void df_player::send() {
     using hex = zoal::io::hexadecimal_functor<uint8_t>;

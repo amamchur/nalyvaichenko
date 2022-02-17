@@ -1,329 +1,84 @@
 #ifndef NALYVAICHENKO_BARTENDER_MACHINE_HPP
 #define NALYVAICHENKO_BARTENDER_MACHINE_HPP
 
-#include "./app_state.hpp"
 #include "./message.hpp"
 #include "./sector_detector.hpp"
 #include "./stepper_kinematics.hpp"
-#include "./tty_terminal.hpp"
-#include "./voice.hpp"
 
-#include <cstdint>
-#include <zoal/gpio/pin_mode.hpp>
-#include <zoal/utils/scheduler.hpp>
+#include <zoal/data/ring_buffer.hpp>
+#include <zoal/func/function.hpp>
 
-template<
-    //
-    class TicksType,
-    class Stepper,
-    class PumpSignal,
-    class PumpPwmChannel,
-    class ValveSignal,
-    class HallSensorAdcChannel,
-    class IrSensorAdcChannel>
-class bartender_machine : public event_handler {
+class bartender_machine;
+
+class bartender_machine_task {
 public:
-    using scheduler_type = zoal::utils::lambda_scheduler<uint32_t, 8, 32>;
-    using stepper_type = Stepper;
-    using hall_channel = HallSensorAdcChannel;
-    using ir_channel = IrSensorAdcChannel;
-    using pump_signal = PumpSignal;
-    using pump_pwm_channel = PumpPwmChannel;
-    using valve_signal = ValveSignal;
+    uint8_t state{0};
+    uint8_t portion{0};
+    zoal::func::function<16, bool, bartender_machine_task &> start_;
+    zoal::func::function<16, bool, bartender_machine_task &> handle_timer_;
+    zoal::func::function<16, bool, bartender_machine_task &> handle_adc_;
 
-    static constexpr uint32_t steps_per_revolution = 4096u;
-    static constexpr uint8_t forward_direction = 1;
-    static constexpr uint32_t debug_delay_ms = 0;
-    static constexpr uint32_t step_delay_ms = 1;
+    bartender_machine_task() = default;
 
-    void process_event(event &e) override {
-        auto &s = global_app_state.settings;
-        auto segments = s.segments_;
-        auto power = s.pump_power_;
-        auto rs = s.revolver_settings_[segments];
-        auto ps = s.portion_settings_[s.current_portion_];
-        switch (e.type) {
-        case event_type::settings_changed:
-            pump_pwm_channel::set(255 * power / 100);
-            total_segments_ = segments;
-            portion_time_ = ps.time_;
-            portion_delay_ = rs.portion_delay_;
-            ir_max_value_ = rs.ir_max_value_;
-            ir_min_value_ = rs.ir_min_value_;
-            sector_adjustment_ = rs.sector_adjustment_;
-            detector_.rising_threshold = global_app_state.settings.hall_rising_threshold_;
-            detector_.falling_threshold = global_app_state.settings.hall_falling_threshold_;
-            break;
-        default:
-            break;
-        }
-    }
-
-    void handle(TicksType ms) {
-        scheduler_.handle(ms);
-    }
-
-    void calibrate() {
-        stop_machine();
-
-        memset(hall_values_per_segment_, 0, sizeof(hall_values_per_segment_));
-
-        min_hall_value_ = INT16_MAX;
-        max_hall_value_ = 0;
-        total_segments_ = 0;
-
-        scheduler_.clear();
-        stepper_.rotate(steps_per_revolution, forward_direction);
-        calibrate_to_segment_a();
-    }
-
-    void stop_machine() {
-        stop_liquid_stream();
-
-        portions_left_ = 0;
-        stepper_.stop();
-        scheduler_.clear();
-        send_event(event_type::machine_stop);
-    }
-
-    void start() {
-        stop_machine();
-
-        portions_left_ = total_segments_;
-        portions_made_ = 0;
-        go_to_next_segment();
-    }
-
-    void next_segment() {
-        stop_machine();
-        go_to_next_segment();
-    }
-
-    void pump(uint32_t delay_ticks) {
-        using namespace zoal::gpio;
-        stop_machine();
-        start_liquid_stream();
-        scheduler_.schedule(0, delay_ticks, [this]() { stop_liquid_stream(); });
-    }
-
-    void valve(uint32_t delay_ticks) {
-        using namespace zoal::gpio;
-        stop_machine();
-        typename valve_signal::_1();
-        scheduler_.schedule(0, delay_ticks, [this]() { api::optimize<typename valve_signal::_0>(); });
-    }
-
-    void rotate(int steps) {
-        stop_machine();
-
-        int dir = steps > 0 ? forward_direction : 1 - forward_direction;
-        stepper_.rotate(abs(steps), dir);
-        scheduler_.schedule(0, step_delay_ms, [this]() { perform_adjust_segment(); });
+    template<class S, class T, class A>
+    bartender_machine_task(S s, T t, A a) {
+        start_.template assign(s);
+        handle_timer_.template assign(t);
+        handle_adc_.template assign(a);
     }
 
 private:
-    void start_liquid_stream() {
-        zoal::gpio::api::optimize<
-            //
-            typename pump_pwm_channel::connect,
-            typename pump_signal::_1,
-            typename valve_signal::_1>();
+};
+
+class bartender_machine : public event_handler {
+public:
+    static constexpr uint32_t step_per_rotation = 32 * 200;
+
+    void stop_machine();
+    void hold();
+    [[noreturn]] void main_task();
+    void handle_timer();
+    void handle_adc();
+    void rpm(uint32_t value);
+    void acceleration(float value);
+    inline float acceleration() const {
+        return acceleration_;
+    }
+    inline float speed() const {
+        return speed_;
     }
 
-    void stop_liquid_stream() {
-        zoal::gpio::api::optimize<
-            //
-            typename pump_pwm_channel::disconnect,
-            typename pump_signal::_0,
-            typename valve_signal::_0>();
-    }
+    void next_segment();
+    void process_event(event &e) override;
 
-    void calibrate_rotate_30_degrees() {
-        if (stepper_.steps_left > 0) {
-            stepper_.step_now();
-            scheduler_.schedule(0, step_delay_ms, [this]() { calibrate_rotate_30_degrees(); });
-        } else {
-            stepper_.rotate(steps_per_revolution, forward_direction);
-            scheduler_.schedule(0, debug_delay_ms, [this]() { perform_calibration(); });
-        }
-    }
+    void go();
+    void rotate(float steps);
+    void pump(uint32_t delay_ticks);
+    void valve(int i);
 
-    void calibrate_to_segment_a() {
-        int value = hall_channel::read();
-        auto result = detector_.handle(value);
-        auto state = detector_.sector_state_;
-        if (result == detection_result::changed && state == sector_state::sector) {
-            stepper_.rotate(steps_per_revolution / 12, forward_direction);
-            scheduler_.schedule(0, debug_delay_ms, [this]() { calibrate_rotate_30_degrees(); });
-            return;
-        }
+private:
+    zoal::data::ring_buffer<bartender_machine_task, 16> tasks_;
 
-        if (stepper_.steps_left > 0) {
-            stepper_.step_now();
-            scheduler_.schedule(0, step_delay_ms, [this]() { calibrate_to_segment_a(); });
-        } else {
-            stop_machine();
-            send_command(command_type::render_screen);
-        }
-    }
-
-    void stop_pump_and_go_to_next() {
-        stop_liquid_stream();
-
-        portions_made_++;
-        command cmd{};
-        cmd.type = command_type::play;
-        cmd.value = voice::cheers + portions_made_;
-        send_command(cmd);
-        scheduler_.schedule(0, portion_delay_, [this]() { make_next_if_needed(); });
-    }
-
-    void perform_adjust_segment() {
-        if (stepper_.steps_left > 0) {
-            stepper_.step_now();
-            scheduler_.schedule(0, step_delay_ms, [this]() { perform_adjust_segment(); });
-        } else {
-            scheduler_.schedule(0, 0, [this]() { make_portion(); });
-        }
-    }
-
-    void adjust_segment() {
-        int dir = sector_adjustment_ > 0 ? forward_direction : 1 - forward_direction;
-        stepper_.rotate(abs(sector_adjustment_), dir);
-        scheduler_.schedule(0, step_delay_ms, [this]() { perform_adjust_segment(); });
-    }
-
-    void make_portion() {
-        int value = ir_channel::read();
-        portions_left_--;
-
-        bool match = value > ir_min_value_ && value < ir_max_value_;
-        if (match && portions_left_ >= 0) {
-            stepper_.stop();
-            start_liquid_stream();
-            scheduler_.schedule(0, portion_time_, [this]() { stop_pump_and_go_to_next(); });
-        } else {
-            scheduler_.schedule(0, 0, [this]() { make_next_if_needed(); });
-        }
-    }
-
-    void go_to_segment_a() {
-        stop_liquid_stream();
-
-        int value = hall_channel::read();
-        auto result = detector_.handle(value);
-        auto state = detector_.sector_state_;
-        if (result == detection_result::changed && state == sector_state::sector) {
-            scheduler_.schedule(0, 0, [this]() { adjust_segment(); });
-            return;
-        }
-
-        if (stepper_.steps_left > 0) {
-            stepper_.step_now();
-            scheduler_.schedule(0, step_delay_ms, [this]() { go_to_segment_a(); });
-        } else {
-            stop_machine();
-        }
-    }
-
-    void rotate_30_deg() {
-        stop_liquid_stream();
-
-        if (stepper_.steps_left > 0) {
-            stepper_.step_now();
-            scheduler_.schedule(0, step_delay_ms, [this]() { rotate_30_deg(); });
-        } else {
-            stepper_.rotate(steps_per_revolution / total_segments_, forward_direction);
-            scheduler_.schedule(0, debug_delay_ms, [this]() { go_to_segment_a(); });
-        }
-    }
-
-    void go_to_next_segment() {
-        stop_liquid_stream();
-
-        if (total_segments_ == 0) {
-            stop_machine();
-            return;
-        }
-
-        scheduler_.clear();
-        stepper_.rotate(steps_per_revolution / 12, forward_direction);
-        scheduler_.schedule(0, 0, [this]() { rotate_30_deg(); });
-    }
-
-    void make_next_if_needed() {
-        stop_liquid_stream();
-
-        if (portions_left_ == 0) {
-            command cmd{};
-            cmd.type = command_type::play;
-            cmd.value = voice::cheers;
-            send_command(cmd);
-        }
-
-        if (portions_left_ > 0) {
-            go_to_next_segment();
-        } else {
-            portions_left_ = 0;
-            stop_machine();
-        }
-    }
-
-    void perform_calibration() {
-        int value = hall_channel::read();
-        auto result = detector_.handle(value);
-        auto state = detector_.sector_state_;
-
-        if (max_hall_value_ < value) {
-            max_hall_value_ = value;
-        }
-
-        if (min_hall_value_ > value) {
-            min_hall_value_ = value;
-        }
-
-        if (result == detection_result::changed && state == sector_state::sector) {
-            hall_values_per_segment_[total_segments_] = max_hall_value_;
-            total_segments_++;
-        }
-
-        if (stepper_.steps_left > 0) {
-            stepper_.step_now();
-            scheduler_.schedule(0, step_delay_ms, [this]() { perform_calibration(); });
-        } else {
-            stepper_.stop();
-            global_app_state.max_hall_value_ = max_hall_value_;
-            global_app_state.min_hall_value_ = min_hall_value_;
-            global_app_state.settings.segments_ = total_segments_;
-            global_app_state.save_settings();
-            send_event(event_type::calibration_finished);
-
-            command cmd{};
-            cmd.type = command_type::play;
-            cmd.value = voice::calibration_finished;
-            send_command(cmd);
-
-            cmd.type = command_type::play;
-            cmd.value = voice::segs_found + total_segments_;
-            send_command(cmd);
-        }
-    }
-
-    stepper_type stepper_;
-    scheduler_type scheduler_;
+    stepper_kinematics<> sk;
     sector_detector detector_;
+    float speed_{step_per_rotation};
+    float acceleration_{step_per_rotation};
+    uint8_t segments_{6};
+    int correction_{0};
+    uint32_t portion_time_ms_{1500};
+    uint16_t ir_value_{400};
+    uint16_t hall_value_{2300};
+    int drinks_made_{0};
 
-    uint32_t portion_time_{850};
-    uint32_t portion_delay_{100};
-    int portions_left_{0};
-    int portions_made_{0};
-    int total_segments_{6};
-    int ir_min_value_{0};
-    int ir_max_value_{300};
-    int min_hall_value_{0};
-    int max_hall_value_{0};
-    int hall_values_per_segment_[6]{0};
-    int sector_adjustment_{-10};
+    bool update_period();
+    void push_task(bartender_machine_task &task);
+    void push_find_segment();
+    void push_release();
+    void absolute_rotate(float steps, float speed = 0);
+    void relative_rotate(float steps, float speed = 0);
+    void notify_done();
+
+    static bool null_task_handler(bartender_machine_task &);
 };
 
 #endif

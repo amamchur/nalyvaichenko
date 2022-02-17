@@ -1,7 +1,9 @@
-#include "bartender_machine_v2.hpp"
+#include "bartender_machine.hpp"
 
 #include "./app_state.hpp"
 #include "./config.hpp"
+#include "./storage/anim.hpp"
+#include "./storage/voice.hpp"
 #include "adc.h"
 
 constexpr uint8_t task_state_default = 0;
@@ -10,7 +12,7 @@ constexpr uint8_t task_state_portion_rotate = 1;
 constexpr uint8_t task_state_portion_check = 2;
 constexpr uint8_t task_state_portion_make = 3;
 
-bool bartender_machine_v2::update_period() {
+bool bartender_machine::update_period() {
     auto period = sk.period();
     if (isinf(period)) {
         hold();
@@ -24,7 +26,7 @@ bool bartender_machine_v2::update_period() {
     }
 }
 
-void bartender_machine_v2::absolute_rotate(float steps, float speed) {
+void bartender_machine::absolute_rotate(float steps, float speed) {
     if (speed <= 0) {
         speed = speed_;
     }
@@ -36,7 +38,7 @@ void bartender_machine_v2::absolute_rotate(float steps, float speed) {
     machine_timer::enable();
 }
 
-void bartender_machine_v2::relative_rotate(float steps, float speed) {
+void bartender_machine::relative_rotate(float steps, float speed) {
     if (speed <= 0) {
         speed = speed_;
     }
@@ -48,7 +50,7 @@ void bartender_machine_v2::relative_rotate(float steps, float speed) {
     machine_timer::enable();
 }
 
-void bartender_machine_v2::stop_machine() {
+void bartender_machine::stop_machine() {
     motor_enable::off();
     machine_timer::disable();
     motor_step_pwm_channel::disconnect();
@@ -65,14 +67,14 @@ void bartender_machine_v2::stop_machine() {
     tasks_.clear();
 }
 
-void bartender_machine_v2::hold() {
+void bartender_machine::hold() {
     motor_enable::on();
     machine_timer::disable();
     motor_step_pwm_channel::disconnect();
     machine_timer::TIMERx_SR::ref() &= ~machine_timer::TIMERx_SR_UIF;
 }
 
-void bartender_machine_v2::main_task() {
+void bartender_machine::main_task() {
     while (true) {
         delay::ms(1);
         //        auto e = events.wait(0xFF);
@@ -82,7 +84,7 @@ void bartender_machine_v2::main_task() {
     }
 }
 
-void bartender_machine_v2::handle_timer() {
+void bartender_machine::handle_timer() {
     bartender_machine_task *t;
     if (!tasks_.front(&t)) {
         return;
@@ -102,7 +104,7 @@ void bartender_machine_v2::handle_timer() {
     }
 }
 
-void bartender_machine_v2::handle_adc() {
+void bartender_machine::handle_adc() {
     bartender_machine_task *t;
     if (!tasks_.front(&t)) {
         return;
@@ -122,19 +124,19 @@ void bartender_machine_v2::handle_adc() {
     }
 }
 
-void bartender_machine_v2::rpm(uint32_t value) {
+void bartender_machine::rpm(uint32_t value) {
     speed_ = static_cast<float>(value) / 60.0f * steps_per_revolution;
 }
 
-void bartender_machine_v2::acceleration(float value) {
+void bartender_machine::acceleration(float value) {
     acceleration_ = value;
 }
 
-void bartender_machine_v2::next_segment() {
+void bartender_machine::next_segment() {
     push_find_segment();
 }
 
-void bartender_machine_v2::rotate(float steps) {
+void bartender_machine::rotate(float steps) {
     auto start = [this, steps](bartender_machine_task &) {
         absolute_rotate(steps);
         return false;
@@ -152,11 +154,11 @@ void bartender_machine_v2::rotate(float steps) {
     push_task(t);
 }
 
-void bartender_machine_v2::push_find_segment() {
+void bartender_machine::push_find_segment() {
     auto start = [this](bartender_machine_task &) {
         auto steps = static_cast<float>(steps_per_revolution) / static_cast<float>(segments_) * 2.0f;
         motor_dir_cw::on();
-        absolute_rotate(steps, speed_ / 2);
+        absolute_rotate(steps, speed_);
         HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&sensors_values, 2);
         return false;
     };
@@ -196,13 +198,10 @@ void bartender_machine_v2::push_find_segment() {
         auto hall = hall_sensor_value();
         auto result = detector_.handle(hall);
         if (result == detection_result::changed && detector_.sector_state_ == sector_state::sector) {
-            if (correction_ > 0) {
-                motor_dir_cw::on();
-            } else {
-                motor_dir_cw::off();
-            }
-            absolute_rotate(static_cast<float>(correction_), speed_ / 4);
-            update_period();
+            auto steps_left = sk.target_step_ - sk.current_step_;
+            auto steps = static_cast<float>(steps_per_revolution) / static_cast<float>(segments_);
+            steps = steps - steps_left + static_cast<float>(correction_);
+            relative_rotate(steps, speed_);
             t.state = task_state_find_segment_correction;
         } else {
             HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&sensors_values, 2);
@@ -213,7 +212,7 @@ void bartender_machine_v2::push_find_segment() {
     push_task(t);
 }
 
-void bartender_machine_v2::push_release() {
+void bartender_machine::push_release() {
     auto start = [this](bartender_machine_task &) {
         motor_enable::off();
         machine_timer::disable();
@@ -228,7 +227,7 @@ void bartender_machine_v2::push_release() {
     push_task(t);
 }
 
-void bartender_machine_v2::process_event(event &e) {
+void bartender_machine::process_event(event &e) {
     //    auto &s = global_app_state.settings;
     //    auto segments = s.segments_;
     //    auto power = s.pump_power_;
@@ -244,7 +243,7 @@ void bartender_machine_v2::process_event(event &e) {
     //    }
 }
 
-void bartender_machine_v2::push_task(bartender_machine_task &task) {
+void bartender_machine::push_task(bartender_machine_task &task) {
     bool start_now = tasks_.empty();
     tasks_.push_back(task);
     if (start_now) {
@@ -252,7 +251,24 @@ void bartender_machine_v2::push_task(bartender_machine_task &task) {
     }
 }
 
-void bartender_machine_v2::go() {
+void bartender_machine::notify_done() {
+    bartender_machine_task t([this](bartender_machine_task &t) {
+        if (drinks_made_ != 0) {
+            send_command_isr(command_type::ui_anim, anim::drink + rand() % 8);
+            send_command_isr(command_type::play, voice::cheers);
+        } else {
+            send_command_isr(command_type::play, voice::no_drink);
+        }
+        return true;
+    }, null_task_handler, null_task_handler);
+    push_task(t);
+}
+
+void bartender_machine::go() {
+    stop_machine();
+
+    drinks_made_ = 0;
+
     push_find_segment();
 
     auto start = [this](bartender_machine_task &t) {
@@ -280,16 +296,22 @@ void bartender_machine_v2::go() {
             pump_pwm_channel::disconnect();
             pump_signal::low();
             valve_signal::low();
+
+            send_command_isr(command_type::play, voice::drink_ready + drinks_made_);
+            drinks_made_++;
             return true;
         }
         return false;
     };
     auto adc = [this](bartender_machine_task &t) {
         if (t.state == task_state_portion_check) {
-//            auto ir = ir_sensor_value();
-//            if (ir > ir_value_) {
-//                return true;
-//            }
+            auto ir = ir_sensor_value();
+            auto hall = hall_sensor_value();
+            if (ir > ir_value_ || hall < hall_value_) {
+                return true;
+            }
+            motor_enable::off();
+
             t.state = task_state_portion_make;
             machine_timer::TIMERx_ARR::ref() = portion_time_ms_ * 1000; // us
             machine_timer::TIMERx_CNT::ref() = 0;
@@ -312,14 +334,16 @@ void bartender_machine_v2::go() {
     }
 
     push_release();
+    notify_done();
 }
 
-bool bartender_machine_v2::null_task_handler(bartender_machine_task &) {
+bool bartender_machine::null_task_handler(bartender_machine_task &) {
     return true;
 }
 
-void bartender_machine_v2::pump(uint32_t delay_ticks) {
+void bartender_machine::pump(uint32_t delay_ticks) {
     auto start = [delay_ticks](bartender_machine_task &t) {
+        motor_enable::off();
         motor_step_pwm_channel::disconnect();
         machine_timer::disable();
         machine_timer::TIMERx_ARR::ref() = delay_ticks * 1000;
@@ -340,15 +364,12 @@ void bartender_machine_v2::pump(uint32_t delay_ticks) {
         valve_signal::low();
         return true;
     };
-    auto adc = [](bartender_machine_task &t) {
-        return false;
-    };
 
-    bartender_machine_task t(start, timer, adc);
+    bartender_machine_task t(start, timer, null_task_handler);
     push_task(t);
 }
 
-void bartender_machine_v2::valve(int delay_ticks) {
+void bartender_machine::valve(int delay_ticks) {
     auto start = [delay_ticks](bartender_machine_task &t) {
         motor_enable::off();
         motor_step_pwm_channel::disconnect();
@@ -367,10 +388,7 @@ void bartender_machine_v2::valve(int delay_ticks) {
         valve_signal::low();
         return true;
     };
-    auto adc = [](bartender_machine_task &t) {
-        return false;
-    };
 
-    bartender_machine_task t(start, timer, adc);
+    bartender_machine_task t(start, timer, null_task_handler);
     push_task(t);
 }

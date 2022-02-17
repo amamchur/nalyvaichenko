@@ -99,6 +99,7 @@ void send_command(command_type type);
 void send_command(command_type type, int value);
 void send_command(const command &cmd);
 void send_command_isr(command_type type);
+void send_command_isr(command_type type, int value);
 bool pop_message(message &msg);
 
 #endif

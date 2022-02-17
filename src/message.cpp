@@ -45,6 +45,14 @@ void send_command_isr(command_type type) {
     send_message_isr(msg);
 }
 
+void send_command_isr(command_type type, int value) {
+    message msg{};
+    msg.type = message_type::command;
+    msg.c.type = type;
+    msg.c.value = value;
+    send_message_isr(msg);
+}
+
 void send_command(command_type type, int value) {
     message msg{};
     msg.type = message_type::command;
