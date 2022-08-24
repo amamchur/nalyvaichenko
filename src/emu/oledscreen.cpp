@@ -54,7 +54,7 @@ OledScreen::OledScreen(QWidget *parent)
 void OledScreen::drawPixel(QPainter &qp, int x, int y) {
     QColor color(0x00FF00);
     QBrush b(color);
-    int size = 10;
+    int size = 5;
     int px = x * size;
     int py = y * size;
     qp.fillRect(px, py, size, size, b);

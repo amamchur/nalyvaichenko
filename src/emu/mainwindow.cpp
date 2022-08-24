@@ -54,7 +54,7 @@ void MainWindow::on_renderButton_clicked() {
 
 void MainWindow::process_command(command cmd) {
     switch (cmd.type) {
-    case command_type::logo:
+    case command_type::ui_logo:
         user_interface.push_screen(&user_interface.logo_screen_);
         break;
     case command_type::request_render_screen:
